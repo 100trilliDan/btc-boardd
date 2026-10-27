@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>BTC·ETH·SOL 전략 보드</title>
+<style>
+/* 색: 캔들 상승/하락·강조색은 dataviz validate_palette.js 로 라이트·다크 모두 검증(색약 분리 ΔE 8 이상, 일반시각 15 이상, 표면 대비 4.5:1 이상). 상태는 색만으로 전달하지 않고 아이콘+글자를 함께 씁니다. */
+:root{--page:#edf0f3;--surface:#fbfcfc;--well:#e5eaee;--line:#d9dfe4;--line-2:#c3ccd4;--ink:#121b24;--ink-2:#4a5866;--ink-3:#5c6976;
+--accent:#3d70d1;--accent-fill:#3d70d1;--up-t:#026c45;--down-t:#b82320;--wash:rgba(61,112,209,.12);--up:#03734a;--up-fill:#03734a;--down:#c22826;--down-fill:#c22826;--on-fill:#fff;--warn-fill:#fab219;--on-warn:#0b0b0b;--warn-ink:#8a5a00;
+--font:"Pretendard Variable",Pretendard,system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#0c1117;--surface:#151d25;--well:#1c2730;--line:#26323d;--line-2:#35434f;--ink:#e6edf2;--ink-2:#a9b6c2;--ink-3:#8c9aa7;
+--accent:#578cf0;--accent-fill:#3a68c8;--up-t:#33b884;--down-t:#f37a72;--wash:rgba(87,140,240,.16);--up:#1d9a68;--up-fill:#068558;--down:#ec544b;--down-fill:#c44039;--warn-ink:#e0a53a;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.5 var(--font);word-break:keep-all;overflow-wrap:break-word}
+button,input{font:inherit;color:inherit}button{cursor:pointer}:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.app{max-width:1160px;margin:0 auto;padding:0 max(14px,env(safe-area-inset-right)) max(40px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+.ico{display:inline-block;width:1em;height:1em;flex:none}.ico svg{display:block;width:100%;height:100%}
+.num{font-variant-numeric:tabular-nums}.pos{color:var(--up-t)}.neg{color:var(--down-t)}.dim{color:var(--ink-2)}
+
+/* 상단 바 */
+.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:6px;background:var(--page);padding:max(10px,env(safe-area-inset-top)) 0 8px}
+.bar h1{font-size:17px;font-weight:750;margin:0 auto 0 0;letter-spacing:-.01em}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:1;padding:7px 10px;border-radius:999px;background:var(--well);color:var(--ink-2);white-space:nowrap}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.55}
+.chip.live{color:var(--ink)}.chip.live::before{background:var(--up);opacity:1}
+.chip.warn{background:var(--warn-fill);color:var(--on-warn)}.chip.warn::before{background:var(--on-warn);opacity:1}
+.icon{width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:12px;background:transparent;color:var(--ink-2);padding:0}
+.icon:hover{background:var(--well)}.icon[aria-expanded=true]{background:var(--well);color:var(--ink)}.icon[disabled]{opacity:.5;cursor:default}
+.icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:no-preference){@keyframes spin{to{transform:rotate(360deg)}}.icon[disabled] svg{animation:spin 1s linear infinite}}
+.btn{border:0;box-shadow:inset 0 0 0 1px var(--line-2);background:var(--surface);border-radius:9px;min-height:40px;padding:0 14px;font-size:13px;font-weight:600}
+.settings{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);border-radius:14px;padding:12px 14px;margin:2px 0 10px;font-size:13px;color:var(--ink-2)}
+.settings label{display:flex;align-items:center;gap:8px;min-height:40px}
+.settings input[type=number]{width:96px;height:36px;border:0;box-shadow:inset 0 0 0 1px var(--line-2);border-radius:9px;background:var(--page);padding:0 10px;text-align:right;color:var(--ink)}
+.settings input[type=checkbox]{width:22px;height:22px;margin:0;accent-color:var(--accent)}
+.settings p{flex-basis:100%;margin:0;font-size:12px;color:var(--ink-3)}
+.err{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);box-shadow:inset 4px 0 0 var(--down),inset 0 0 0 1px var(--line);border-radius:10px;padding:10px 14px 10px 18px;margin:0 0 10px;font-size:13px}
+.screens{display:grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--well);border-radius:12px;padding:3px;margin:2px 0 14px;max-width:420px}
+.screens button{border:0;background:transparent;padding:9px 0;border-radius:9px;font-weight:650;color:var(--ink-2)}
+.screens button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+
+/* 판정판 배치: 폰은 한 줄로 쌓고, 넓은 화면은 왼쪽에 판정판·오른쪽에 상세 */
+.layout{display:block}
+@media (min-width:980px){.layout{display:grid;grid-template-columns:minmax(400px,440px) minmax(0,1fr);gap:26px;align-items:start}.left{position:sticky;top:64px}}
+
+/* 지금 할 일 */
+.verdict{padding:2px 0 14px}
+.v-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px}
+.v-lead{font-size:15px;font-weight:500;color:var(--ink-2)}
+.v-main{font-size:26px;line-height:1.2;font-weight:760;letter-spacing:-.015em}
+.v-warn{display:flex;gap:8px;align-items:flex-start;margin:8px 0 0;padding:8px 10px;border-radius:9px;background:var(--warn-fill);color:var(--on-warn);font-size:13px;font-weight:600}
+.v-list{display:grid;gap:8px;margin-top:12px}
+.sigrow{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:2px 10px;width:100%;text-align:left;border:0;border-radius:12px;padding:10px 12px;color:var(--on-fill);background:var(--up-fill)}
+.sigrow.short{background:var(--down-fill)}
+.sigrow .ico{font-size:20px;grid-row:span 2}
+.sigrow .who{font-weight:700;font-size:15px}
+.sigrow .nums{font-size:12.5px;font-variant-numeric:tabular-nums}
+.holdrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.hchip{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;min-height:40px;padding:0 14px 0 11px;background:var(--wash);box-shadow:inset 0 0 0 1.5px var(--accent);font-size:13px;font-weight:600;color:var(--ink)}
+.hchip.skip{background:var(--warn-fill);color:var(--on-warn);box-shadow:none}
+.v-next{margin:12px 0 0;font-size:12.5px;color:var(--ink-2)}
+
+/* 3×3 판정판 */
+.board{width:calc(100% + 12px);margin:-6px;border-collapse:separate;border-spacing:6px;table-layout:fixed}
+.board th{font-weight:600;color:var(--ink-2);text-align:left;vertical-align:middle;padding:0}
+.board thead th{text-align:center;font-size:13px;color:var(--ink);padding-bottom:2px}
+.board thead small{display:block;font-size:10.5px;font-weight:400;color:var(--ink-3);line-height:1.3}
+.board col.rh{width:66px}
+.board tbody th{padding-right:2px}
+.rh-sym{display:block;font-size:15px;font-weight:750;color:var(--ink)}
+.rh-px{display:block;font-size:11.5px;font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.board td{padding:0}
+.cell{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;min-height:92px;padding:9px 8px 8px;border:0;border-radius:12px;text-align:left;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-2)}
+.cell .ico{font-size:19px}
+.cell .lb{font-size:14.5px;font-weight:720;line-height:1.2;color:var(--ink)}
+.cell .sb{font-size:11px;line-height:1.3;font-weight:500}
+.cell .sb.r{font-size:14px;font-weight:750;font-variant-numeric:tabular-nums}
+.cell.wait .ico{color:var(--ink-3)}.cell.wait .lb{color:var(--ink-2);font-weight:620}.cell.wait .sb{color:var(--ink-3)}
+.cell.sig{background:var(--up-fill);color:var(--on-fill);box-shadow:none}.cell.sig.short{background:var(--down-fill)}
+.cell.sig .lb,.cell.sig .sb{color:var(--on-fill)}
+.cell.hold{background:var(--wash);box-shadow:inset 0 0 0 2px var(--accent)}.cell.hold .ico{color:var(--accent)}.cell.hold .sb{color:var(--ink-2)}
+.cell.skip{background:var(--warn-fill);color:var(--on-warn);box-shadow:none}.cell.skip .lb,.cell.skip .sb,.cell.skip .ico{color:var(--on-warn)}
+.cell[aria-pressed=true]{box-shadow:0 0 0 3px var(--page),0 0 0 5.5px var(--ink)}
+.cell.wait[aria-pressed=true]{box-shadow:0 0 0 3px var(--page),0 0 0 5.5px var(--ink),inset 0 0 0 1px var(--line)}
+.cell.empty{opacity:.55;cursor:default}
+.cell .sb.r.pos{color:var(--up-t)}.cell .sb.r.neg{color:var(--down-t)}
+.tb tr.me td{background:var(--wash)}
+.hint{margin:12px 0 0;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2)}
+.hint span{display:inline-flex;align-items:center;gap:5px}.hint .ico{font-size:14px;color:var(--ink-3)}
+.hint .up{color:var(--up-t)}.hint .dn{color:var(--down-t)}.hint .ac{color:var(--accent)}
+
+/* 상세 */
+.sheet{background:var(--surface);border-radius:16px;box-shadow:inset 0 0 0 1px var(--line);scroll-margin-top:64px;outline:none;margin-top:18px;overflow:hidden}
+@media (min-width:980px){.sheet{margin-top:0}}
+.sheet .sec{padding:14px 16px;border-top:1px solid var(--line)}.sheet .sec:first-child{border-top:0}
+.s-head{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px}
+.s-sym{font-size:19px;font-weight:760;letter-spacing:-.01em;line-height:1.25}.s-str{font-size:12.5px;color:var(--ink-2);line-height:1.3}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px 5px 9px;font-weight:700;font-size:13px;background:var(--well);color:var(--ink-2)}.badge .ico{font-size:15px}
+.badge.sig{background:var(--up-fill);color:var(--on-fill)}.badge.sig.short{background:var(--down-fill)}
+.badge.hold{background:var(--wash);box-shadow:inset 0 0 0 1.5px var(--accent);color:var(--ink)}.badge.hold .ico{color:var(--accent)}
+.badge.skip{background:var(--warn-fill);color:var(--on-warn)}
+.s-price{justify-self:end;font-size:22px;font-weight:720;letter-spacing:-.01em;line-height:1.25}.s-head .badge{justify-self:end}
+.sec h3{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--ink-2)}
+.tk{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:14px 16px}
+.tk .k{font-size:12px;color:var(--ink-2);line-height:1.35}
+.tk .v{font-size:21px;font-weight:720;line-height:1.25;letter-spacing:-.01em}
+.tk .s{font-size:12px;color:var(--ink-2);line-height:1.35}
+.tk .wide{grid-column:1/-1}.tk .wide .v{font-size:14.5px;font-weight:650;letter-spacing:0}
+.sz{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:10px 16px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line-2)}
+.sz .k{font-size:12px;color:var(--ink-2)}.sz .v{font-size:15px;font-weight:650}.sz .s{font-size:12px;color:var(--ink-2)}
+.basis{margin:12px 0 0;font-size:12px;color:var(--ink-3)}
+.line{font-size:13px;margin:8px 0 0}.line.dim{color:var(--ink-2)}.line.warn{color:var(--warn-ink);font-weight:600}
+.callout{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--warn-fill);color:var(--on-warn);font-size:13.5px;font-weight:600}.callout .ico{font-size:18px;margin-top:1px}
+.note{font-size:12px;color:var(--ink-3);margin:8px 0 0}
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:11px}
+.checks li{display:grid;grid-template-columns:20px 1fr;gap:0 10px;align-items:start}
+.checks .ic{width:20px;height:20px;display:grid;place-items:center;margin-top:0}.checks .ic .ico{font-size:17px}
+.checks li.ok .ic{color:var(--up)}.checks li.no .ic{color:var(--down)}.checks li.info .ic{color:var(--ink-3)}
+.checks .ct{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2)}.checks .ct.solo{font-size:13.5px;font-weight:650;color:var(--ink)}.checks .cv{display:block;font-size:14.5px;font-weight:700;line-height:1.35}.checks .cs{display:block;font-size:12.5px;color:var(--ink-2)}
+.trg{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tg{font-size:12px;padding:3px 10px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--line-2);color:var(--ink-2);white-space:nowrap}
+.tg.win{box-shadow:inset 0 0 0 1.5px var(--accent);color:var(--ink)}.tg.on{background:var(--accent-fill);box-shadow:none;color:#fff;font-weight:700}
+
+/* 차트 */
+.cbox{padding:10px 12px 14px}
+.c-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:4px 4px 8px}
+.c-title{font-size:14px;font-weight:700;margin:0 auto 0 0}
+.seg{display:inline-flex;background:var(--well);border-radius:9px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:7px;min-height:38px;padding:0 13px;font-size:12.5px;font-weight:650;color:var(--ink-2)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.ro{padding:0 4px 6px;font-size:12.5px;color:var(--ink-2)}
+.ro .r0{display:flex;align-items:baseline;gap:8px}.ro .tm{font-weight:700;color:var(--ink)}.ro .chg{margin-left:auto;font-weight:650;font-variant-numeric:tabular-nums}
+.ro .ohlc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 8px;margin-top:3px}.ro .ohlc small{display:block;font-size:11px;line-height:1.3;color:var(--ink-3)}.ro .ohlc span{display:block;font-size:13px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ro .r2,.ro .r3{margin-top:2px}
+.chart{touch-action:pan-y;position:relative;border-radius:8px;outline:none}.chart:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.chart svg{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2);padding:8px 4px 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}.legend i{display:inline-block;width:14px;border-top:2px solid;vertical-align:middle}
+.legend .sw{width:10px;height:10px;border:0;border-radius:2px}
+.legend .ico{font-size:12px}
+.tblwrap{max-height:340px;overflow:auto;border-radius:8px;box-shadow:inset 0 0 0 1px var(--line)}
+table.tb{width:100%;border-collapse:collapse;font-size:12.5px}.tb th,.tb td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}.tb th:first-child,.tb td:first-child{text-align:left}.tb th{color:var(--ink-2);font-weight:600;position:sticky;top:0;background:var(--surface)}
+details.rec summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--ink-2);padding:10px 0;margin:-10px 0}
+details.rec[open] summary{margin-bottom:0}
+
+/* 전략 정보 */
+.info{max-width:760px}
+.itabs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:var(--well);border-radius:12px;padding:3px;margin-bottom:14px}
+.itabs button{border:0;background:transparent;padding:8px 2px;border-radius:9px;font-weight:650;color:var(--ink-2);line-height:1.3}.itabs button small{display:block;font-weight:400;font-size:11px}
+.itabs button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.panel{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.panel h2{font-size:15px;font-weight:720;margin:0 0 12px}.panel h3{font-size:13px;font-weight:700;color:var(--ink-2);margin:16px 0 8px}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.sum div{background:var(--well);border-radius:10px;padding:9px 11px}.sum b{display:block;font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.sum span{font-size:11.5px;color:var(--ink-2)}
+.panel ul{padding-left:18px;margin:6px 0}.panel li{font-size:13px;color:var(--ink-2);margin:4px 0}
+.legrow{display:grid;grid-template-columns:28px 1fr;gap:2px 10px;align-items:start;margin:10px 0}
+.legrow .ico{font-size:22px}.legrow b{font-size:13.5px}.legrow p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.foot{font-size:11.5px;color:var(--ink-3);margin:22px 0 0;max-width:760px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--page);padding:9px 15px;border-radius:9px;font-size:13px;z-index:50}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <h1>전략 보드</h1>
+    <span class="chip" id="status">불러오는 중</span>
+    <button class="icon" id="refresh" aria-label="새로고침" title="새로고침"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.4 5.7"/><path d="M20 4.5V11h-6.5"/></svg></button>
+    <button class="icon" id="gear" aria-label="설정" aria-expanded="false" aria-controls="settings" title="설정"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.4"/><circle cx="8" cy="17" r="2.4"/></svg></button>
+  </header>
+  <section class="settings" id="settings" aria-label="설정" hidden>
+    <label>계좌(USDT) <input id="balance" type="number" inputmode="decimal" min="0" step="100"></label>
+    <label>거래당 위험(%) <input id="risk" type="number" inputmode="decimal" min="0.1" max="3" step="0.1"></label>
+    <label><input type="checkbox" id="auto"> 60초 자동 갱신</label>
+    <p>진입 티켓의 수량과 위험금액은 이 값으로 계산합니다. 이 화면은 자동으로 주문하지 않습니다.</p>
+  </section>
+  <div class="err" id="error" role="alert" hidden><span id="error-msg"></span> <button class="btn" id="demo">데모로 보기</button></div>
+  <nav class="screens" role="tablist" aria-label="화면">
+    <button role="tab" id="tab-board" data-screen="board" aria-selected="true" aria-controls="screen-board">판정판</button>
+    <button role="tab" id="tab-info" data-screen="info" aria-selected="false" aria-controls="screen-info">전략 정보</button>
+  </nav>
+  <main id="screen-board" role="tabpanel" aria-labelledby="tab-board">
+    <div class="layout">
+      <div class="left">
+        <section id="verdict" class="verdict" aria-live="polite"></section>
+        <section aria-label="코인과 전략별 판정">
+          <table class="board" id="board"></table>
+          <p class="hint" id="hint"></p>
+        </section>
+      </div>
+      <section class="sheet" id="detail" tabindex="-1" aria-label="선택한 판정의 상세" hidden></section>
+    </div>
+  </main>
+  <main id="screen-info" class="info" role="tabpanel" aria-labelledby="tab-info" hidden></main>
+  <p class="foot">참고용 정보이며 투자 조언이 아닙니다. 백테스트는 과거 성과이며 미래를 보장하지 않습니다. 실제 거래에서는 거래소에 손절 주문을 반드시 직접 걸어 두세요. 이 화면은 자동으로 주문하지 않습니다.</p>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+/* 두 전략의 순수 계산 코어 (브라우저/노드 공용). 미래참조 없음: 모든 상위봉 값은 '마감된' 봉만 사용. */
+(function (root) {
+  const H = 3600e3, DAY = 24 * H;
+  const FEE = 0.0005, SLIP = 0.0001;
+  function mk(rows, ms) { // rows: [openTime,o,h,l,c,v]
+    const n = rows.length, B = { n, ms, t: new Array(n), o: new Array(n), h: new Array(n), l: new Array(n), c: new Array(n), v: new Array(n) };
+    for (let i = 0; i < n; i++) { const r = rows[i]; B.t[i] = +r[0]; B.o[i] = +r[1]; B.h[i] = +r[2]; B.l[i] = +r[3]; B.c[i] = +r[4]; B.v[i] = +r[5]; }
+    return B;
+  }
+  function agg(b, f) { // f개씩 묶기(에포크 기준 빈, 가득 찬 묶음만) = 파이썬 make_bars와 동일
+    const rows = []; let cur = null, bin = null, cnt = 0;
+    const flush = () => { if (cur && cnt === f) rows.push(cur); };
+    for (let i = 0; i < b.n; i++) {
+      const bi = Math.floor(b.t[i] / (f * b.ms));
+      if (bi !== bin) { flush(); bin = bi; cnt = 0; cur = [bi * f * b.ms, b.o[i], b.h[i], b.l[i], b.c[i], 0]; }
+      cur[2] = Math.max(cur[2], b.h[i]); cur[3] = Math.min(cur[3], b.l[i]); cur[4] = b.c[i]; cur[5] += b.v[i]; cnt++;
+    }
+    flush(); return mk(rows, f * b.ms);
+  }
+  function alignTo(hi, arr, lo) { // 하위봉 마감 시점에 이미 마감된 마지막 상위봉 값
+    const out = new Array(lo.n).fill(NaN); let j = -1;
+    for (let i = 0; i < lo.n; i++) {
+      const lc = lo.t[i] + lo.ms;
+      while (j + 1 < hi.n && hi.t[j + 1] + hi.ms <= lc) j++;
+      if (j >= 0) out[i] = arr[j];
+    }
+    return out;
+  }
+  function hhPrev(b, n) { const o = new Array(b.n).fill(NaN); for (let i = n; i < b.n; i++) { let m = -Infinity; for (let k = i - n; k < i; k++) if (b.h[k] > m) m = b.h[k]; o[i] = m; } return o; }
+  function swingHigh(b, k) {
+    const n = b.n, PH = new Array(n).fill(NaN);
+    for (let j = k; j <= n - k - 1; j++) { let m = -Infinity; for (let q = j - k; q <= j + k; q++) if (b.h[q] > m) m = b.h[q]; if (b.h[j] === m) PH[j + k] = b.h[j]; }
+    for (let i = 1; i < n; i++) if (isNaN(PH[i])) PH[i] = PH[i - 1];
+    return PH;
+  }
+  function atr(b, n = 14) { const a = new Array(b.n); const al = 1 / n; for (let i = 0; i < b.n; i++) { const pc = i ? b.c[i - 1] : b.c[0]; const tr = Math.max(b.h[i] - b.l[i], Math.abs(b.h[i] - pc), Math.abs(b.l[i] - pc)); a[i] = i ? a[i - 1] * (1 - al) + tr * al : tr; } return a; }
+  function volRatio(b, n = 20) { const o = new Array(b.n).fill(NaN); let s = 0; for (let i = 0; i < b.n; i++) { if (i >= n) { const m = s / n; o[i] = b.v[i] / m; } s += b.v[i]; if (i >= n) s -= b.v[i - n]; } return o; }
+  const LEVELS = [
+    { id: "sw_d3", name: "일봉 스윙고점(3)", tf: "D", kind: "sw", p: 3 }, { id: "sw_d7", name: "일봉 스윙고점(7)", tf: "D", kind: "sw", p: 7 },
+    { id: "sw_w2", name: "주봉 스윙고점(2)", tf: "W", kind: "sw", p: 2 }, { id: "dc_d30", name: "30일 고점", tf: "D", kind: "dc", p: 30 },
+    { id: "dc_d60", name: "60일 고점", tf: "D", kind: "dc", p: 60 }, { id: "dc_w13", name: "13주 고점", tf: "W", kind: "dc", p: 13 }, { id: "dc_w26", name: "26주 고점", tf: "W", kind: "dc", p: 26 }];
+  function levelSeries(D, W) { // 각 레벨의 상위봉 시계열
+    const out = {};
+    for (const L of LEVELS) { const hb = L.tf === "D" ? D : W; out[L.id] = L.kind === "sw" ? swingHigh(hb, L.p) : hhPrev(hb, L.p); }
+    return out;
+  }
+  /* ───── 전략 A: 일·주봉 핵심자리 첫 돌파 + 거래량 2배 (트리거 TF: 1h/4h) ───── */
+  function swingEvents(trig, D, W, mult = 2.0) {
+    const LS = levelSeries(D, W), vr = volRatio(trig), ev = [];
+    for (const L of LEVELS) {
+      const hb = L.tf === "D" ? D : W, LH = alignTo(hb, LS[L.id], trig); let used = NaN;
+      for (let i = 1; i < trig.n; i++) {
+        if (isNaN(LH[i]) || isNaN(vr[i])) continue;
+        if (vr[i] >= mult && trig.c[i] > LH[i] && trig.c[i - 1] <= LH[i] && LH[i] !== used) { ev.push({ i, id: L.id, name: L.name, level: LH[i], vr: vr[i], closeT: trig.t[i] + trig.ms, tfH: trig.ms / H }); used = LH[i]; }
+      }
+    }
+    ev.sort((a, b) => a.closeT - b.closeT); return ev;
+  }
+  function currentLevels(trig, D, W) { // 최신 마감봉 기준 레벨값
+    const LS = levelSeries(D, W), out = [];
+    for (const L of LEVELS) { const hb = L.tf === "D" ? D : W; const v = alignTo(hb, LS[L.id], trig); out.push({ id: L.id, name: L.name, level: v[trig.n - 1] }); }
+    return out;
+  }
+  function swingPlan(b15, k, ep) { // k: 마지막 마감 15분봉 인덱스, ep: 기준가
+    const a = atr(b15); let lo = Infinity; for (let q = Math.max(0, k - 15); q <= k; q++) lo = Math.min(lo, b15.l[q]);
+    let stop = lo - 0.5 * a[k], sp = (ep - stop) / ep;
+    if (sp < 0.004) { stop = ep * (1 - 0.004); sp = 0.004; } if (sp > 0.035) { stop = ep * (1 - 0.035); sp = 0.035; }
+    return { entry: ep, stop, sp, tp1: ep * 1.105, tp2: ep * 1.28 };
+  }
+  /* ───── 전략 B: 일목균형표 4시간봉 (전환선·기준선 골든/데드크로스, 구름 위/아래) ───── */
+  function roll(arr, n, fn) { const o = new Array(arr.length).fill(NaN); for (let i = n - 1; i < arr.length; i++) { let m = fn === "max" ? -Infinity : Infinity; for (let k = i - n + 1; k <= i; k++) m = fn === "max" ? Math.max(m, arr[k]) : Math.min(m, arr[k]); o[i] = m; } return o; }
+  function ichimoku(b) {
+    const hh9 = roll(b.h, 9, "max"), ll9 = roll(b.l, 9, "min"), hh26 = roll(b.h, 26, "max"), ll26 = roll(b.l, 26, "min"), hh52 = roll(b.h, 52, "max"), ll52 = roll(b.l, 52, "min");
+    const ten = hh9.map((x, i) => (x + ll9[i]) / 2), kij = hh26.map((x, i) => (x + ll26[i]) / 2);
+    const saR = ten.map((x, i) => (x + kij[i]) / 2), sbR = hh52.map((x, i) => (x + ll52[i]) / 2);
+    const top = new Array(b.n).fill(NaN), bot = new Array(b.n).fill(NaN);
+    for (let i = 26; i < b.n; i++) { top[i] = Math.max(saR[i - 26], sbR[i - 26]); bot[i] = Math.min(saR[i - 26], sbR[i - 26]); }  // 26봉 전에 계산된 값 → 미래참조 없음
+    return { ten, kij, top, bot };
+  }
+  function ichiSignals(b, I) {
+    const sig = new Array(b.n).fill(0), c = b.c;
+    for (let i = 1; i < b.n; i++) {
+      const T = I.top[i], B = I.bot[i]; if (isNaN(T) || isNaN(I.ten[i]) || isNaN(I.kij[i]) || isNaN(I.ten[i - 1]) || isNaN(I.kij[i - 1])) continue;
+      const L = I.ten[i] > I.kij[i] && I.ten[i - 1] <= I.kij[i - 1] && c[i] > T;
+      const S = I.ten[i] < I.kij[i] && I.ten[i - 1] >= I.kij[i - 1] && c[i] < B;
+      if (L) sig[i] = 1; else if (S) sig[i] = -1;
+    }
+    return sig;
+  }
+  const clip = (x, lo, hi) => Math.min(Math.max(x, lo), hi);
+  function ichiStop(s, c, kij) { return s > 0 ? clip(kij, c * 0.92, c * 0.99) : clip(kij, c * 1.01, c * 1.08); }
+  function ichiSim(b, I, sig, startIdx = 0) { // 한 종목 1포지션씩. 청산: 손절 / 종가가 구름 반대편(다음 봉 시가) — 파이썬 simulate와 동일 규칙
+    const trades = []; let i = startIdx; const n = b.n;
+    while (i < n - 1) {
+      let k = -1; for (let q = i; q < n - 1; q++) if (sig[q] !== 0) { k = q; break; } if (k < 0) break;
+      i = k; const s = sig[i], e = i + 1, entry = b.o[e] * (1 + s * SLIP), sl0 = ichiStop(s, b.c[i], I.kij[i]), risk = (entry - sl0) * s;
+      if (!(risk > 0)) { i++; continue; }
+      let js = -1, je = -1;
+      for (let x = e; x <= n - 1; x++) if (s > 0 ? b.l[x] <= sl0 : b.h[x] >= sl0) { js = x - e; break; }
+      for (let x = e; x <= n - 2; x++) if (s > 0 ? b.c[x] < I.bot[x] : b.c[x] > I.top[x]) { je = x - e; break; }
+      let kind = null, best = Infinity;
+      if (js >= 0) { best = js + 0.25; kind = "S"; } if (je >= 0 && je + 1.0 < best) { best = je + 1.0; kind = "X"; }
+      let x, px, why, nxt, open = false;
+      if (kind === "S") { x = e + Math.floor(best); const lvl = sl0; px = s > 0 ? Math.min(b.o[x], lvl) : Math.max(b.o[x], lvl); why = "손절"; nxt = x; }
+      else if (kind === "X") { x = e + Math.floor(best); px = b.o[x]; why = s > 0 ? "구름하단 이탈" : "구름상단 돌파"; nxt = x - 1; }
+      else { x = n - 1; px = b.c[x]; why = "보유중"; nxt = x; open = true; }
+      const exitPx = px * (1 - s * SLIP), gross = (exitPx - entry) * s / risk, fees = FEE * (entry + exitPx) / risk;
+      trades.push({ sig: i, e, x, side: s, entry, stop: sl0, exit: exitPx, R: gross - fees, sf: risk / entry, why, open, openT: b.t[e], exitT: b.t[x] });
+      i = Math.max(nxt, e);
+      if (open) break;
+    }
+    return trades;
+  }
+  function ichiState(closedRows4h, formingRow) { // 마감봉 + 진행중 봉(있으면). 신호는 마감봉에서만, 진입은 진행중 봉 시가(=다음 봉 시가)로 기록
+    const rows = formingRow ? closedRows4h.concat([formingRow]) : closedRows4h, b = mk(rows, 4 * H), I = ichimoku(b), sig = ichiSignals(b, I);
+    if (formingRow) sig[b.n - 1] = 0;
+    const nc = closedRows4h.length - 1;     // 마지막 마감봉 인덱스
+    return { b, I, sig, nc, trades: ichiSim(b, I, sig, 0) };
+  }
+  function sizing(balance, riskPct, entry, stop) { // 계좌위험 = min(위험%, 3×손절폭), 레버리지 최대 3배
+    const sp = Math.abs(entry - stop) / entry, rf = Math.min(riskPct, 3 * sp), notional = balance * rf / sp;
+    return { sp, riskFrac: rf, notional, qty: notional / entry, lev: notional / balance, riskUSD: balance * rf };
+  }
+  /* ───── 전략 C(단기): 4시간 일목 상승 필터 + 1시간봉 돌파 신호 7종 중 6봉 안에 서로 다른 2종 이상 · 롱 전용 · 최대 48시간 ─────
+     파이썬 백테스트(short2_ens · short2_extra)와 같은 정의. 신호 봉 다음 1시간봉 시가에 진입, 손절 = 신호 봉 종가 − 1.5×ATR(14),
+     진입봉 포함 48번째 1시간봉 마감에 청산(목표가 없음). 한 봉에서 손절과 시간청산이 겹치면 손절 우선, 시가가 손절가 아래로 갭이면 시가 체결. */
+  const C_TRIGS = [
+    { id: "don48", name: "돈치안 48 돌파", short: "돈치안48" }, { id: "don24", name: "돈치안 24 돌파", short: "돈치안24" }, { id: "pdb", name: "전일 고점 돌파", short: "전일고점" },
+    { id: "kel2", name: "켈트너 2ATR 돌파", short: "켈트너" }, { id: "piv", name: "피벗 R1 돌파", short: "피벗R1" }, { id: "bbb", name: "볼린저 상단 돌파", short: "볼린저" }, { id: "sqz", name: "스퀴즈 돌파", short: "스퀴즈" }];
+  const C_HOLD = 47, C_K = 1.5, C_VOL = 1.5, C_WIN = 6, C_NEED = 2;     // 보유 47 = 진입봉 + 47봉 = 48개 1시간봉
+  function smaStd(c, n) { // 단순이동평균, 모집단 표준편차(ddof=0)
+    const N = c.length, m = new Array(N).fill(NaN), s = new Array(N).fill(NaN);
+    for (let i = n - 1; i < N; i++) {
+      let sum = 0; for (let k = i - n + 1; k <= i; k++) sum += c[k];
+      const mu = sum / n; let q = 0; for (let k = i - n + 1; k <= i; k++) { const d = c[k] - mu; q += d * d; }
+      m[i] = mu; s[i] = Math.sqrt(q / n);
+    }
+    return { m, s };
+  }
+  function emaSpan(c, n) { const a = 2 / (n + 1), o = new Array(c.length); o[0] = c[0]; for (let i = 1; i < c.length; i++) o[i] = a * c[i] + (1 - a) * o[i - 1]; return o; }  // pandas ewm(span, adjust=False)
+  function rollQuantile(w, n, q) { // 롤링 분위수(선형보간, pandas 기본). 창 안에 빈 값이 있으면 NaN
+    const N = w.length, o = new Array(N).fill(NaN), f = q * (n - 1), i0 = Math.floor(f), buf = new Float64Array(n);
+    for (let i = n - 1; i < N; i++) {
+      let bad = false; for (let k = 0; k < n; k++) { const v = w[i - n + 1 + k]; if (v !== v) { bad = true; break; } buf[k] = v; }
+      if (bad) continue; buf.sort();
+      o[i] = i0 === f ? buf[i0] : buf[i0] + (buf[i0 + 1] - buf[i0]) * (f - i0);
+    }
+    return o;
+  }
+  function prevDay(b) { // 각 봉의 '직전 UTC 일자' 고가·피벗 R1. 일자는 데이터에 있는 연속 그룹 기준(파이썬 groupby.shift와 동일). 첫 그룹이 00시에 시작하지 않으면(조회 창 시작) 무효.
+    const n = b.n, g = [], key = new Array(n); let cur = null;
+    for (let i = 0; i < n; i++) {
+      const d = Math.floor(b.t[i] / DAY);
+      if (d !== cur) { cur = d; g.push({ h: b.h[i], l: b.l[i], c: b.c[i], first: b.t[i] }); }
+      const x = g[g.length - 1]; if (b.h[i] > x.h) x.h = b.h[i]; if (b.l[i] < x.l) x.l = b.l[i]; x.c = b.c[i]; key[i] = g.length - 1;
+    }
+    const ph = new Array(n).fill(NaN), r1 = new Array(n).fill(NaN);
+    for (let i = 0; i < n; i++) {
+      const k = key[i] - 1; if (k < 0) continue; const x = g[k]; if (k === 0 && x.first % DAY !== 0) continue;
+      ph[i] = x.h; r1[i] = 2 * ((x.h + x.l + x.c) / 3) - x.l;
+    }
+    return { ph, r1 };
+  }
+  function cTriggers(b) { // 1시간봉 마감 시점의 7개 돌파 신호. 필터·보유와 무관하게 모든 봉에서 계산
+    const n = b.n, c = b.c, vr = volRatio(b, 20), T = {}, a = atr(b, 14), e20 = emaSpan(c, 20), { m: sma, s: sd } = smaStd(c, 20), { ph, r1 } = prevDay(b);
+    const hh48 = hhPrev(b, 48), hh24 = hhPrev(b, 24), ku = e20.map((x, i) => x + 2 * a[i]), bu = sma.map((x, i) => x + 2 * sd[i]);
+    const w = sma.map((x, i) => 4 * sd[i] / x), q = rollQuantile(w, 200, 0.2);
+    for (const t of C_TRIGS) T[t.id] = new Array(n).fill(false);
+    for (let i = 0; i < n; i++) {
+      const v = vr[i] >= C_VOL, p = i > 0;
+      T.don48[i] = c[i] > hh48[i] && v; T.don24[i] = c[i] > hh24[i] && v;
+      T.pdb[i] = c[i] > ph[i] && p && c[i - 1] <= ph[i - 1] && v;
+      T.kel2[i] = c[i] > ku[i] && p && c[i - 1] <= ku[i - 1];
+      T.piv[i] = c[i] > r1[i] && p && c[i - 1] <= r1[i - 1];
+      T.bbb[i] = c[i] > bu[i] && v && p && c[i - 1] <= bu[i - 1];
+      T.sqz[i] = i >= 2 && w[i - 1] <= q[i - 2] && c[i] > bu[i];     // 직전 봉 밴드폭이 그 이전 200개 밴드폭의 하위 20% 이하
+    }
+    return T;
+  }
+  function cVote(T, w = C_WIN, v = C_NEED) { // 현재 봉에서 신호가 나오고, 최근 w개 봉(현재 포함)에 서로 다른 신호가 v종 이상
+    const n = T[C_TRIGS[0].id].length, tot = new Array(n).fill(0), now = new Array(n).fill(false);
+    for (const t of C_TRIGS) { const a = T[t.id]; let cnt = 0; for (let i = 0; i < n; i++) { if (a[i]) { now[i] = true; cnt++; } if (i >= w && a[i - w]) cnt--; if (cnt > 0) tot[i]++; } }
+    return now.map((x, i) => x && tot[i] >= v);
+  }
+  function cFilter(b1, b4) { // 4시간 일목 상승: 종가 > 구름 상단 그리고 전환선 > 기준선. 1시간봉 마감 시점에 이미 마감된 마지막 4시간봉 값
+    const I = ichimoku(b4), up = b4.c.map((x, i) => (x > I.top[i] && I.ten[i] > I.kij[i]) ? 1 : 0);
+    return { I, fil: alignTo(b4, up, b1).map((v) => v > 0.5) };
+  }
+  function cSim(b, sig, A, startIdx = 0, maxHold = C_HOLD, nClosed = b.n) { // 코인당 1포지션. 청산이 일어난 봉의 마감 신호부터 재진입 가능. 파이썬 engine.simulate와 같은 규칙. nClosed: 마감된 봉 수(진행 중 봉은 시간청산 확정에서 제외)
+    const trades = [], n = b.n; let i = startIdx;
+    while (i < n - 1) {
+      let k = -1; for (let q = i; q < n - 1; q++) if (sig[q]) { k = q; break; } if (k < 0) break;
+      i = k; const e = i + 1, entry = b.o[e] * (1 + SLIP), sl0 = b.c[i] - C_K * A[i], risk = entry - sl0;
+      if (!(risk > 0)) { i++; continue; }
+      const wEnd = Math.min(n - 1, e + maxHold); let x = -1, px = 0, why = null;
+      for (let q = e; q <= wEnd; q++) if (b.l[q] <= sl0) { x = q; px = Math.min(b.o[q], sl0); why = "S"; break; }
+      if (why === null) { x = wEnd; px = b.c[x]; why = (e + maxHold <= nClosed - 1) ? "E" : "N"; }
+      const exitPx = px * (1 - SLIP), R = (exitPx - entry) / risk - FEE * (entry + exitPx) / risk, open = why === "N";
+      trades.push({ sig: i, e, x, entry, stop: sl0, exit: exitPx, R, sf: risk / entry, why, open, openT: b.t[e], exitT: b.t[x] + H, deadline: b.t[e] + (maxHold + 1) * H });
+      i = Math.max(x, e); if (open) break;
+    }
+    return trades;
+  }
+  function cState(closed1, forming1, closed4, startIdx = 240) { // 마감 1시간봉 + 진행 중 1시간봉(있으면) + 마감 4시간봉. 신호는 마감봉에서만, 진입은 진행 중 봉 시가(=다음 봉 시가)로 기록
+    const b = mk(forming1 ? closed1.concat([forming1]) : closed1, H), b4 = mk(closed4, 4 * H), nc = closed1.length - 1;
+    const T = cTriggers(b), vote = cVote(T), F = cFilter(b, b4), A = atr(b), sig = vote.map((v, i) => v && F.fil[i]);
+    if (forming1) sig[b.n - 1] = false;
+    const trades = cSim(b, sig, A, Math.min(startIdx, Math.max(0, nc - 1)), C_HOLD, nc + 1), win = {}; let nVote = 0;
+    for (const t of C_TRIGS) { let j = -1; for (let q = nc; q > nc - C_WIN && q >= 0; q--) if (T[t.id][q]) { j = q; break; } win[t.id] = j; if (j >= 0) nVote++; }
+    const nowIds = C_TRIGS.filter((t) => T[t.id][nc]).map((t) => t.id), last = trades.length ? trades[trades.length - 1] : null;
+    const I4 = F.I, j4 = b4.n - 1;
+    return { b, b4, T, vote, fil: F.fil, I4, A, sig, nc, trades, win, nVote, nowIds, newSig: !!(vote[nc] && F.fil[nc]), open: last && last.open ? last : null,
+      f4: { close: b4.c[j4], top: I4.top[j4], bot: I4.bot[j4], ten: I4.ten[j4], kij: I4.kij[j4], t: b4.t[j4] + 4 * H } };
+  }
+  const API = { mk, agg, alignTo, hhPrev, swingHigh, atr, volRatio, LEVELS, levelSeries, swingEvents, currentLevels, swingPlan, ichimoku, ichiSignals, ichiStop, ichiSim, ichiState, sizing,
+    C_TRIGS, smaStd, emaSpan, rollQuantile, prevDay, cTriggers, cVote, cFilter, cSim, cState };
+  if (typeof module !== "undefined") module.exports = API; else root.STRAT = API;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+(function () {
+"use strict";
+const S = window.STRAT, $ = (id) => document.getElementById(id);
+const SYMS = ["BTC", "ETH", "SOL"], STR = ["A", "B", "C"], H = 3600e3;
+const FAPI = "https://fapi.binance.com/fapi/v1";   // 바이낸스 USDT-M 선물 시세만 사용합니다(실패해도 현물로 대체하지 않음)
+// 계좌·위험·자동갱신은 이전 화면(board2.*)과 같은 저장 위치를 써서 설정이 그대로 이어집니다. 새 화면 전용 값은 board3.*
+const store = { get(k, d, old) { try { const v = localStorage.getItem((old ? "board2." : "board3.") + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v, old) { try { localStorage.setItem((old ? "board2." : "board3.") + k, JSON.stringify(v)); } catch (e) {} } };
+const cfg = { balance: store.get("balance", 1000, 1), risk: store.get("risk", 1, 1), auto: store.get("auto", true, 1) };
+const st = { screen: store.get("screen", "board"), itab: store.get("itab", "A"), sel: null, picked: false, range: store.get("range", "normal"), table: false, xhT: null, data: null, an: null, anFor: null, board: null, demo: false, loading: false, timer: null, fail: null };   // fail: 마지막 갱신이 실패했으면 오류 문구, 성공했으면 null
+const nf = (n, d = 0) => Number.isFinite(n) ? n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) : "–";
+const px = (s, p) => nf(p, p >= 1000 ? 1 : p >= 10 ? 2 : 3);
+const pc = (a, b) => { const v = (a / b - 1) * 100; return (v >= 0 ? "+" : "") + v.toFixed(1) + "%"; };
+const p2 = (n) => String(n).padStart(2, "0");
+const ft = (t) => { const d = new Date(t); return p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + " " + p2(d.getHours()) + ":" + p2(d.getMinutes()); };
+const age = (ms) => { const h = ms / H; return h < 1 ? Math.round(ms / 60e3) + "분 전" : h < 48 ? h.toFixed(h < 10 ? 1 : 0) + "시간 전" : Math.round(h / 24) + "일 전"; };
+function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function toast(m) { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2000); }
+
+/* ───── 데이터 ───── */
+async function getK(sym, iv, limit) {
+  const r = await fetch(FAPI + "/klines?symbol=" + sym + "USDT&interval=" + iv + "&limit=" + limit);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return await r.json();
+}
+function closed(rows, ms, now) { return rows.filter((r) => r[0] + ms <= now).map((r) => [r[0], r[1], r[2], r[3], r[4], r[5]]); }
+function pack(sym, K, now, last) {
+  const fr4 = K["4h"].filter((r) => r[0] + 4 * H > now && r[0] <= now).map((r) => [r[0], r[1], r[2], r[3], r[4], r[5]]), c4 = closed(K["4h"], 4 * H, now);
+  const fr1 = K["1h"].filter((r) => r[0] + H > now && r[0] <= now).map((r) => [r[0], r[1], r[2], r[3], r[4], r[5]]), c1 = closed(K["1h"], H, now);   // 전략 C용: 마감 1시간봉 + 진행 중 1시간봉
+  const b15 = S.mk(closed(K["15m"], 900e3, now), 900e3), b1 = S.mk(c1, H), b4 = S.mk(c4, 4 * H), D = S.mk(closed(K["1d"], 24 * H, now), 24 * H);
+  const W = S.agg(D, 7);   // 주봉 = 일봉 7개(에포크 기준 묶음). 파이썬 백테스트와 같은 정의
+  return { sym, b15, b1, b4, D, W, price: last, c4, fr4: fr4[fr4.length - 1] || null, c1, fr1: fr1[fr1.length - 1] || null };
+}
+async function liveAll() {
+  const now = Date.now(), out = {};
+  await Promise.all(SYMS.map(async (s) => {
+    const [k15, k1, k4, kd] = await Promise.all([getK(s, "15m", 200), getK(s, "1h", 1000), getK(s, "4h", 1500), getK(s, "1d", 1000)]);
+    out[s] = pack(s, { "15m": k15, "1h": k1, "4h": k4, "1d": kd }, now, +k15[k15.length - 1][4]);
+  }));
+  return { at: now, live: true, coins: out, src: "선물" };
+}
+function demoAll() { // 화면 구성 확인용 가짜 시세(신호 없음 보장 없음)
+  const now = Math.floor(Date.now() / 900e3) * 900e3, out = {}; let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const base = { BTC: 80000, ETH: 3200, SOL: 150 };
+  for (const s of SYMS) {
+    const n = 15 * 24 * 4 * 24, rows = []; let c = base[s] * 0.6, m = 0;
+    for (let i = n; i >= 1; i--) { const t = now - i * 900e3, o = c; m = m * 0.98 + (rnd() - 0.5) * 0.0016; c = o * (1 + m + (rnd() - 0.5) * 0.004); rows.push([t, o, Math.max(o, c) * (1 + rnd() * .002), Math.min(o, c) * (1 - rnd() * .002), c, 100 + rnd() * 200]); }
+    const b = S.mk(rows, 900e3), a1 = S.agg(b, 4), a4 = S.agg(a1, 4), ad = S.agg(a4, 6), tail = (x, k) => Array.from({ length: Math.min(k, x.n) }, (_, j) => { const i = x.n - Math.min(k, x.n) + j; return [x.t[i], x.o[i], x.h[i], x.l[i], x.c[i], x.v[i]]; });
+    const K = { "15m": tail(b, 200), "1h": tail(a1, 1000), "4h": tail(a4, 1500), "1d": tail(ad, 1000) };
+    out[s] = pack(s, K, now + 1, c);
+  }
+  return { at: Date.now(), live: false, coins: out, src: "데모" };
+}
+
+/* ───── 계산 ───── */
+function analyze(c) {
+  const price = c.price, A = { new: [], recent: [], levels: null, vr1: NaN, vr4: NaN };
+  const vr1 = S.volRatio(c.b1), vr4 = S.volRatio(c.b4); A.vr1 = vr1[c.b1.n - 1]; A.vr4 = vr4[c.b4.n - 1];
+  const evs = [];
+  for (const tb of [c.b1, c.b4]) for (const e of S.swingEvents(tb, c.D, c.W)) evs.push(Object.assign({ tb }, e));
+  evs.sort((a, b) => b.closeT - a.closeT);
+  A.all = evs;   // (표시 전용) 차트 위에 과거 돌파 위치를 찍기 위해 전체 목록을 보관. 계산에는 쓰지 않음
+  const lastClose15 = c.b15.t[c.b15.n - 1] + 900e3, now = c.b15.t[c.b15.n - 1] + 900e3;
+  for (const e of evs) {
+    const ageMs = now - e.closeT; if (ageMs > 72 * H) break;
+    const isNew = e.i === e.tb.n - 1;
+    const rec = Object.assign({}, e, { ageMs, isNew, tfH: e.tfH });
+    (isNew ? A.new : A.recent).push(rec);
+  }
+  const cur = S.currentLevels(c.b1, c.D, c.W).filter((x) => Number.isFinite(x.level)); A.levels = cur;
+  const above = cur.filter((x) => x.level > price).sort((a, b) => a.level - b.level);
+  A.next = above[0] || null; A.nextList = above;
+  A.plan = S.swingPlan(c.b15, c.b15.n - 1, price);
+  // 전략 B
+  const ig = S.ichiState(c.c4, c.fr4), I = ig.I, sig = ig.sig, tr = ig.trades, n = ig.nc;
+  const B = { I, sig, trades: tr, open: tr.length && tr[tr.length - 1].open ? tr[tr.length - 1] : null, n };
+  B.new = B.open && B.open.sig === n ? B.open : null;
+  B.pos = price > I.top[n] ? "구름 위" : price < I.bot[n] ? "구름 아래" : "구름 안";
+  B.tk = I.ten[n] > I.kij[n] ? "전환선 > 기준선" : "전환선 < 기준선";
+  B.lastSig = (() => { for (let i = n; i >= 0 && i > n - 120; i--) if (sig[i]) return { i, s: sig[i], t: c.b4.t[i] + 4 * H }; return null; })();
+  // 전략 C (단기): 마감 1시간봉 + 진행 중 1시간봉 + 마감 4시간봉
+  const C = S.cState(c.c1, c.fr1, c.c4, 240);
+  return { c, A, B, C };
+}
+
+/* ───── 판정 모델: 코인×전략 한 칸의 상태와 숫자. 계산식·문구는 이전 카드(coinCardA/B/C)와 같고, 화면 구성만 다릅니다 ───── */
+function sizing(entry, stop) { return S.sizing(cfg.balance, cfg.risk / 100, entry, stop); }
+const R = (id, k, v, s, cls) => ({ id, k, v, s, cls });   // 한 줄 정보: 이름·값·보조글자
+const sizeRows = (c, z) => [R("qty", "수량", nf(z.qty, c.sym === "BTC" ? 4 : 2) + " " + c.sym, "명목 " + nf(z.notional, 0) + " USDT"), R("lev", "배율 / 위험금액", z.lev.toFixed(2) + "배", "손절 시 -" + nf(z.riskUSD, 1) + " USDT")];
+function leftTxt(ms) { if (!(ms > 60e3)) return "1분 미만"; const m = Math.round(ms / 60e3), h = Math.floor(m / 60); return h >= 6 ? "약 " + Math.round(m / 60) + "시간" : h ? h + "시간 " + (m % 60) + "분" : m + "분"; }
+const STRMETA = { A: { t: "확정", d: "레벨 돌파 스윙" }, B: { t: "후보", d: "일목 4시간 롱숏" }, C: { t: "단기", d: "돌파 2종 최대 48시간" } };
+const TILEHEAD = { A: ["A 확정", "레벨 돌파"], B: ["B 후보", "일목 4시간"], C: ["C 단기", "최대 48시간"] };
+function base(k, r) { return { k, r, sym: r.c.sym, kind: "wait", side: 0, label: "대기", full: "대기", sub: [], big: null, size: null, checks: [], lines: [], notes: [], warns: [], chips: null, chipNote: null, next: null, z: null, plan: null, skip: null }; }
+const rTxt = (x) => (x >= 0 ? "+" : "") + x.toFixed(2) + "R";
+
+function vA(r) {
+  const { c, A } = r, nw = A.new, V = base("A", r), vr = (x) => Number.isFinite(x) ? x.toFixed(1) : "–";
+  if (nw.length) {
+    const P = A.plan, z = sizing(P.entry, P.stop);
+    Object.assign(V, { kind: "sig", side: 1, label: "롱 신호", full: "롱 신호", z, plan: { entry: P.entry, stop: P.stop, tp1: P.tp1, tp2: P.tp2, e: null, isNew: true }, sub: [nw[0].name, "손절 -" + (P.sp * 100).toFixed(1) + "%"] });
+    V.lines.push({ cls: "", t: "새 신호: " + nw.map((x) => x.name + " 돌파(" + (x.tfH === 1 ? "1시간" : "4시간") + "봉, 거래량 " + x.vr.toFixed(1) + "배)").join(" · ") });
+    V.big = [R("entry", "진입(다음 15분봉 시가 부근)", px(c.sym, P.entry)), R("stop", "손절", px(c.sym, P.stop), "-" + (P.sp * 100).toFixed(1) + "%"), R("tp1", "1차 익절 (절반)", px(c.sym, P.tp1), "+10.5% → 손절을 본전으로"), R("tp2", "2차 익절 (나머지)", px(c.sym, P.tp2), "+28%")];
+    V.size = sizeRows(c, z);
+    V.notes.push("최대 보유 10일. 같은 시점에 열린 롱이 3개를 넘지 않게(확정안 규칙) 관리하세요.");
+  } else {
+    V.sub = [A.next ? "위 레벨 " + pc(A.next.level, c.price) : "전고점 돌파 상태"];
+    V.checks.push({ id: "nosig", st: "no", t: "신규 돌파 신호 없음", s: "마지막 마감 1시간봉 거래량 " + vr(A.vr1) + "배 / 4시간봉 " + vr(A.vr4) + "배 (신호 조건 2.0배 이상)" });
+    if (A.next) {
+      V.checks.push({ id: "level", st: "info", t: "가장 가까운 위쪽 돌파 레벨", v: px(c.sym, A.next.level), s: A.next.name + " · " + pc(A.next.level, c.price) });
+      V.checks.push({ id: "cond", st: "info", t: "돌파 조건", v: "마감 종가가 레벨 위 + 거래량 2배", s: "1시간 또는 4시간봉" });
+    } else V.checks.push({ id: "nolevel", st: "info", t: "현재 가격 위에 남은 핵심 레벨이 없습니다(전고점 돌파 상태)." });
+  }
+  return V;
+}
+
+function vB(r) {
+  const { c, B } = r, I = B.I, n = B.n, o = B.open, V = base("B", r), sn = o ? (o.side > 0 ? "롱" : "숏") : null;
+  V.checks.push({ id: "cloud", st: "info", t: "구름 상태", v: B.pos, s: "상단 " + px(c.sym, I.top[n]) + " / 하단 " + px(c.sym, I.bot[n]) });
+  V.checks.push({ id: "tk", st: "info", t: "전환선·기준선", v: B.tk, s: px(c.sym, I.ten[n]) + " / " + px(c.sym, I.kij[n]) });
+  if (o) {
+    const risk = Math.abs(o.entry - o.stop), rNow = (c.price - o.entry) * o.side / risk, z = sizing(o.entry, o.stop), pp = (c.price / o.entry - 1) * o.side * 100, spct = "-" + (Math.abs(o.entry - o.stop) / o.entry * 100).toFixed(1) + "%";
+    Object.assign(V, { kind: B.new ? "sig" : "hold", side: o.side, label: B.new ? sn + " 신호" : sn + " 보유", full: B.new ? sn + " 신호" : sn + " 보유 중", z, plan: { entry: o.entry, stop: o.stop, e: o.e, isNew: !!B.new } });
+    V.rNow = B.new ? null : rNow;
+    V.sub = B.new ? ["손절 " + spct] : [[rTxt(rNow), rNow >= 0 ? "pos" : "neg"], "손절 " + spct];
+    V.big = [R("entry", B.new ? "진입 예정(다음 4시간봉 시가)" : "진입가(기록)", px(c.sym, o.entry), ft(o.openT)), R("stop", "손절(기준선)", px(c.sym, o.stop), spct)];
+    if (!B.new) V.big.push(R("pnl", "현재 손익", rTxt(rNow), (pp >= 0 ? "+" : "") + pp.toFixed(1) + "%", rNow >= 0 ? "pos" : "neg"));
+    V.big.push(Object.assign(R("exit", "청산 조건", o.side > 0 ? "4시간봉 종가가 구름 하단(" + px(c.sym, I.bot[n]) + ") 아래" : "4시간봉 종가가 구름 상단(" + px(c.sym, I.top[n]) + ") 위", "마감 후 다음 봉 시가"), { wide: true }));
+    V.size = sizeRows(c, z);
+    V.notes.push("손절·청산 모두 4시간봉 기준입니다. 기록은 불러온 최근 약 250일 데이터로 계산한 상태이며, 이전에 이미 진입했다면 실제 진입가와 다를 수 있습니다.");
+  } else {
+    V.sub = [B.pos, B.tk === "전환선 > 기준선" ? "전환 > 기준" : "전환 < 기준"];
+    if (B.lastSig) V.checks.push({ id: "last", st: "info", t: "마지막 신호", v: (B.lastSig.s > 0 ? "롱" : "숏") + " · " + ft(B.lastSig.t), s: age(c.b15.t[c.b15.n - 1] + 900e3 - B.lastSig.t) });
+    V.lines.push({ cls: "dim", t: "진입 조건: 전환선이 기준선을 위로(롱, 가격이 구름 위) 또는 아래로(숏, 가격이 구름 아래) 교차한 4시간봉 마감." });
+  }
+  return V;
+}
+
+function vC(r) {
+  const { c, C } = r, V = base("C", r), nc = C.nc, b = C.b, now = Date.now(), lastCloseT = b.t[nc] + H;
+  const o = C.open, isNew = !!(o && o.sig === nc), lt = C.trades.length ? C.trades[C.trades.length - 1] : null, sigT = lt && lt.sig === nc ? lt : null;   // sigT: 이번 마감봉 신호로 만들어진 가상 거래(진행 중 봉이 이미 손절가를 건드렸으면 끝난 상태)
+  const F = C.f4, fOk = !!C.fil[nc], why = [];
+  if (!(F.close > F.top)) why.push(F.close < F.bot ? "종가가 구름 아래" : "종가가 구름 안"); if (!(F.ten > F.kij)) why.push("전환선 < 기준선");
+  V.checks.push({ id: "filter", st: fOk ? "ok" : "no", t: "4시간 일목 필터", v: fOk ? "통과" : "미통과", s: fOk ? "종가 > 구름 상단 · 전환선 > 기준선" : why.join(" · ") });
+  V.checks.push({ id: "vote", st: C.nVote >= 2 ? "ok" : "no", t: "돌파 신호(최근 6봉)", v: C.nVote + "종", s: "2종 이상 + 방금 봉에 신호 필요" });
+  V.chips = S.C_TRIGS.map((t) => { const j = C.win[t.id], k = j >= 0 ? nc - j : -1; return { cls: "tg" + (k === 0 ? " on" : k > 0 ? " win" : ""), t: t.short + (k === 0 ? " · 방금" : k > 0 ? " · " + k + "봉 전" : ""), title: t.name }; });
+  V.chipNote = "채움 = 방금 마감한 1시간봉(" + ft(lastCloseT) + " 마감)에서 발생 · 테두리 = 최근 6봉 안에 발생";
+  let P = null, msg = null;
+  if (o) P = { entry: o.entry, stop: o.stop, openT: o.openT, deadline: o.deadline, isNew, e: o.e };
+  else if (C.newSig) {
+    if (sigT) msg = "신호가 떴지만 진행 중인 봉이 이미 손절가(" + px(c.sym, sigT.stop) + ")를 건드렸습니다. 규칙상 이 신호는 건너뜁니다.";
+    else if (c.fr1) msg = "신호가 떴지만 진행 중인 봉의 시가가 손절가 이하라 진입 조건을 채우지 못합니다.";
+    else { const stop = b.c[nc] - 1.5 * C.A[nc]; P = { entry: c.price, stop, openT: lastCloseT, deadline: lastCloseT + 48 * H, isNew: true, e: null }; }
+  }
+  V.kind = P ? (P.isNew ? "sig" : "hold") : C.newSig ? "skip" : "wait"; V.side = P ? 1 : 0;
+  V.label = P ? (P.isNew ? "롱 신호" : "롱 보유") : C.newSig ? "진입 불가" : "대기"; V.full = P ? (P.isNew ? "롱 신호" : "롱 보유 중") : V.label;
+  if (P) {
+    const z = sizing(P.entry, P.stop), sp = (P.entry - P.stop) / P.entry; V.z = z; V.plan = { entry: P.entry, stop: P.stop, e: P.e, isNew: P.isNew };
+    V.big = [R("entry", P.isNew ? "진입 예정(다음 1시간봉 시가)" : "진입가(기록)", px(c.sym, P.entry), ft(P.openT)), R("stop", "손절(신호봉 종가 − 1.5×ATR)", px(c.sym, P.stop), "-" + (sp * 100).toFixed(2) + "%"), R("time", "시간 청산(48시간째 마감)", ft(P.deadline), leftTxt(P.deadline - now) + " 남음")];
+    if (P.isNew) { V.big.push(R("now", "현재가(진입가 대비)", px(c.sym, c.price), pc(c.price, P.entry))); V.sub = ["손절 -" + (sp * 100).toFixed(2) + "%"]; }
+    else { const rNow = (c.price - P.entry) / (P.entry - P.stop), pp = (c.price / P.entry - 1) * 100; V.rNow = rNow; V.big.push(R("pnl", "현재 손익", rTxt(rNow), (pp >= 0 ? "+" : "") + pp.toFixed(1) + "%", rNow >= 0 ? "pos" : "neg")); V.sub = [[rTxt(rNow), rNow >= 0 ? "pos" : "neg"], leftTxt(P.deadline - now) + " 남음"]; }
+    V.size = sizeRows(c, z);
+    if (z.riskFrac < cfg.risk / 100 - 1e-9) V.notes.push("손절폭이 좁아 레버리지 3배 상한이 걸려 위험이 " + (z.riskFrac * 100).toFixed(2) + "%로 줄었습니다.");
+    if (o && !isNew && C.newSig) V.warns.push("방금 봉에도 새 신호가 떴지만 이미 보유 구간이라 규칙상 건너뜁니다(코인당 1포지션).");
+    V.notes.push("목표가 없이 손절 또는 48시간 청산만 있습니다(백테스트 평균 보유 21시간). 최근 약 30일 데이터로 규칙을 그대로 돌린 가상 상태이며 실제 진입 여부와 무관합니다.");
+  } else if (msg) { V.skip = msg; V.sub = [sigT ? "손절가 먼저 터치" : "시가가 손절가 이하"]; }
+  else {
+    V.sub = [fOk ? "필터 통과" : "필터 미통과", "신호 " + C.nVote + "/2종"];
+    if (!fOk) V.lines.push({ cls: "dim", t: "4시간 일목 필터가 통과 상태가 아니라 돌파 신호가 나와도 진입하지 않습니다." });
+    else if (C.nVote >= 2) V.lines.push({ cls: "dim", t: "최근 6봉에 서로 다른 신호가 " + C.nVote + "종 있었지만 방금 마감한 봉에는 새 신호가 없어 대기합니다(방금 봉에 신호가 있어야 진입)." });
+    else V.lines.push({ cls: "dim", t: C.nVote === 1 ? "신호가 1종입니다. 6봉 안에 다른 종류의 돌파가 하나 더 나오면 진입 신호입니다." : "최근 6봉에 돌파 신호가 없습니다." });
+  }
+  const nxt = (c.fr1 ? c.fr1[0] : lastCloseT) + H; V.next = "다음 1시간봉 마감(신호 판정): " + ft(nxt) + " · " + leftTxt(nxt - now) + " 후";
+  return V;
+}
+function buildBoard(an) { const B = {}; for (const r of an) B[r.c.sym] = { A: vA(r), B: vB(r), C: vC(r) }; return B; }
+const cellList = (B) => SYMS.flatMap((s) => STR.map((k) => B[s][k]));
+function countNote(k, an) {   // 이전 화면의 '현재 새 신호 N개 …' 문구와 같음
+  if (k === "A") return "현재 새 신호 " + an.filter((r) => r.A.new.length).length + "개 · 확정안은 동시에 3개까지만 진입합니다(세 코인이면 사실상 제한 없음).";
+  if (k === "B") return "현재 보유 중 " + an.filter((r) => r.B.open).length + "개 · 코인당 1포지션 규칙. 동시 3개 제한.";
+  return "현재 새 신호 " + an.filter((r) => r.C.open && r.C.open.sig === r.C.nc).length + "개 · 가상 보유 중 " + an.filter((r) => r.C.open).length + "개 · 코인당 1포지션, 동시 3개 제한(세 코인이면 사실상 제한 없음)." + (cfg.risk > 0.5 ? " 현재 위험 설정 " + cfg.risk + "% — 전략 C는 0.5% 이하를 권장합니다(백테스트 낙폭 -27%는 위험 1% 기준)." : "");
+}
+function pickSel(B) {   // 기본 선택: 신호 > 진입 불가 > 가상 보유 > 마지막으로 본 칸. 사용자가 직접 고른 뒤에는 새로고침해도 유지
+  const valid = (x) => x && B[x.sym] && B[x.sym][x.k], all = cellList(B);
+  if (st.picked && valid(st.sel)) return st.sel;
+  const f = all.find((v) => v.kind === "sig") || all.find((v) => v.kind === "skip") || all.find((v) => v.kind === "hold");
+  if (f) return { sym: f.sym, k: f.k };
+  const sv = store.get("sel", null); return valid(sv) ? { sym: sv.sym, k: sv.k } : { sym: "BTC", k: "C" };
+}
+
+/* ───── 아이콘(글꼴에 기대지 않도록 직접 그림). 상태는 색만이 아니라 모양+글자로 구분 ───── */
+const ICON = {
+  wait: '<circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/>',
+  long: '<path d="M12 4.5 20.6 19.2H3.4Z" fill="currentColor"/>',
+  short: '<path d="M12 19.5 20.6 4.8H3.4Z" fill="currentColor"/>',
+  hold: '<circle cx="12" cy="12" r="7.5" fill="currentColor"/>',
+  skip: '<circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M7.4 16.6 16.6 7.4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
+  ok: '<path d="M5 12.5 10 17.5 19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  no: '<path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+  info: '<circle cx="12" cy="12" r="3.4" fill="currentColor"/>',
+  warn: '<path d="M12 4 21.5 20H2.5Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 10v4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.2" fill="currentColor"/>'
+};
+function ico(name, cls) { const s = document.createElement("span"); s.className = "ico" + (cls ? " " + cls : ""); s.setAttribute("aria-hidden", "true"); s.innerHTML = '<svg viewBox="0 0 24 24" focusable="false">' + ICON[name] + "</svg>"; return s; }
+const glyphOf = (V) => V.kind === "wait" ? "wait" : V.kind === "skip" ? "skip" : V.kind === "hold" ? "hold" : V.side < 0 ? "short" : "long";
+
+/* ───── 화면 ① 지금 할 일 + 3×3 판정판 ───── */
+function h(tag, cls, ...kids) { const e = document.createElement(tag); if (cls) e.className = cls; for (const k of kids) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k))); return e; }
+const hhmm = (t) => ft(t).slice(6);
+const sideTxt = (v) => v.side < 0 ? "숏" : "롱";
+function nextClose1h(an) { for (const r of an) { const C = r.C, lastCloseT = C.b.t[C.nc] + H; return (r.c.fr1 ? r.c.fr1[0] : lastCloseT) + H; } return null; }
+function renderVerdict() {
+  const box = $("verdict"), B = st.board, d = st.data; box.replaceChildren();
+  if (!B) { box.append(h("div", "v-head", el("span", "v-lead", "지금 할 일"), el("span", "v-main", st.loading ? "시세를 불러오는 중" : "시세 없음"))); return; }
+  const all = cellList(B), sigs = all.filter((v) => v.kind === "sig"), skips = all.filter((v) => v.kind === "skip"), holds = all.filter((v) => v.kind === "hold");
+  box.append(h("div", "v-head", el("span", "v-lead", "지금 할 일"), el("span", "v-main", sigs.length ? "진입 신호 " + sigs.length + "건" : "없음")));
+  if (!d.live) box.append(h("p", "v-warn", ico("warn"), "데모 데이터입니다. 실제 신호가 아닙니다."));
+  else if (st.fail) box.append(h("p", "v-warn", ico("warn"), "시세 갱신에 실패했습니다. " + hhmm(d.at) + " 데이터 기준이라 신호가 최신이 아닐 수 있습니다."));
+  if (sigs.length) {
+    const list = h("div", "v-list");
+    for (const v of sigs) {
+      const b = h("button", "sigrow" + (v.side < 0 ? " short" : "")), p = v.plan, c = v.r.c;
+      b.type = "button"; b.dataset.sym = v.sym; b.dataset.k = v.k;
+      b.append(ico(glyphOf(v)), el("span", "who", v.sym + " 전략 " + v.k + " " + sideTxt(v) + " 진입"), el("span", "nums", "진입 " + px(c.sym, p.entry) + " / 손절 " + px(c.sym, p.stop)));
+      b.onclick = () => select(v.sym, v.k, true); list.append(b);
+    }
+    box.append(list);
+  }
+  if (skips.length || holds.length) {
+    const row = h("div", "holdrow");
+    for (const v of skips) { const b = h("button", "hchip skip", ico("skip"), v.sym + " 전략 " + v.k + " 진입 불가"); b.type = "button"; b.onclick = () => select(v.sym, v.k, true); row.append(b); }
+    for (const v of holds) { const b = h("button", "hchip", ico("hold"), v.sym + " 전략 " + v.k + " " + sideTxt(v) + " 가상 보유 ", el("span", v.rNow >= 0 ? "pos" : "neg", rTxt(v.rNow))); b.type = "button"; b.onclick = () => select(v.sym, v.k, true); row.append(b); }
+    box.append(row);
+  }
+  const nx = nextClose1h(st.an); if (nx) box.append(el("p", "v-next", "다음 1시간봉 마감 " + hhmm(nx) + " (" + leftTxt(nx - Date.now()) + " 후)"));
+  document.title = (sigs.length ? "(" + sigs.length + ") " : "") + "BTC·ETH·SOL 전략 보드";
+}
+function cellBtn(V, s, k) {
+  const b = document.createElement("button"); b.type = "button"; b.dataset.sym = s; b.dataset.k = k;
+  if (!V) { b.className = "cell empty"; b.disabled = true; b.append(ico("wait"), el("span", "lb", "–")); b.setAttribute("aria-label", s + " 전략 " + k + " 시세 없음"); return b; }
+  b.className = "cell " + V.kind + (V.kind === "sig" && V.side < 0 ? " short" : "");
+  b.setAttribute("aria-pressed", String(!!(st.sel && st.sel.sym === s && st.sel.k === k)));
+  b.append(ico(glyphOf(V)), el("span", "lb", V.label));
+  const said = [];
+  for (const x of V.sub) { const arr = Array.isArray(x); b.append(el("span", "sb" + (arr ? " r " + x[1] : ""), arr ? x[0] : x)); said.push(arr ? x[0] : x); }
+  b.setAttribute("aria-label", s + " 전략 " + k + " " + STRMETA[k].t + ", " + V.full + (said.length ? ", " + said.join(", ") : ""));
+  b.onclick = () => select(s, k, true);
+  return b;
+}
+function renderBoard() {
+  const t = $("board"), B = st.board, ae = document.activeElement, keep = ae && ae.classList && ae.classList.contains("cell") ? [ae.dataset.sym, ae.dataset.k] : null; t.replaceChildren();
+  t.append(h("caption", "sr", "코인과 전략별 현재 판정"));
+  const cg = document.createElement("colgroup"); cg.innerHTML = '<col class="rh"><col><col><col>'; t.append(cg);
+  const hd = h("tr"); hd.append(h("td")); for (const k of STR) { const th = h("th", null, TILEHEAD[k][0]); th.scope = "col"; th.append(el("small", null, TILEHEAD[k][1])); hd.append(th); } t.append(h("thead", null, hd));
+  const tb = h("tbody"), d = st.data;
+  for (const s of SYMS) {
+    const tr = h("tr"), th = h("th"); th.scope = "row"; th.append(el("span", "rh-sym", s), el("span", "rh-px", d ? px(s, d.coins[s].price) : "–")); tr.append(th);
+    for (const k of STR) tr.append(h("td", null, cellBtn(B ? B[s][k] : null, s, k)));
+    tb.append(tr);
+  }
+  t.append(tb);
+  if (keep) { const b = t.querySelector('.cell[data-sym="' + keep[0] + '"][data-k="' + keep[1] + '"]'); if (b) b.focus({ preventScroll: true }); }
+  const hint = $("hint"); hint.replaceChildren();
+  const li = (name, cls, txt) => hint.append(h("span", null, h("span", cls, ico(name)), txt));
+  li("wait", "", "대기"); li("long", "up", "롱 신호"); li("short", "dn", "숏 신호"); li("hold", "ac", "가상 보유"); li("skip", "", "진입 불가");
+}
+function select(s, k, user) {
+  st.sel = { sym: s, k }; if (user) { st.picked = true; store.set("sel", st.sel); st.xhT = null; }
+  document.querySelectorAll("#board .cell").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sym === s && b.dataset.k === k)));
+  renderDetail();
+  if (user && !matchMedia("(min-width:980px)").matches) $("detail").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block: "start" });
+}
+
+/* ───── 화면 ② 선택한 칸의 상세: 티켓 · 조건 · 차트 · 기록 ───── */
+function statEl(x) { const w = document.createElement("div"); if (x.wide) w.className = "wide"; w.dataset.id = x.id; w.append(el("div", "k", x.k), el("div", "v" + (x.cls ? " " + x.cls : ""), x.v)); if (x.s) w.append(el("div", "s", x.s)); return w; }
+function recordsEl(k, an, sym) {
+  const box = h("details", "sec rec"), ttl = k === "A" ? "최근 72시간 돌파 신호(이미 지난 신호 포함)" : k === "B" ? "최근 4시간봉 거래 기록(최근 6건)" : "최근 1시간봉 가상 거래 기록(최근 8건)";
+  box.append(el("summary", null, ttl));
+  if (k === "A") {
+    const rows = []; for (const r of an) for (const e of r.A.new.concat(r.A.recent)) rows.push([r.c.sym, e]); rows.sort((a, b) => b[1].closeT - a[1].closeT);
+    if (!rows.length) { box.append(el("p", "line dim", "최근 72시간 안에 발생한 신호가 없습니다.")); return box; }
+    const t = el("table", "tb"); t.innerHTML = "<tr><th>코인</th><th>레벨</th><th>봉</th><th>거래량</th><th>시각</th></tr>";
+    for (const [s, e] of rows) { const tr = el("tr", s === sym ? "me" : null); for (const v of [s, e.name + " " + nf(e.level, e.level >= 1000 ? 0 : 2), (e.tfH === 1 ? "1h" : "4h"), e.vr.toFixed(1) + "x", ft(e.closeT) + " (" + age(e.ageMs) + ")"]) tr.append(el("td", "num", v)); t.append(tr); }
+    box.append(h("div", "tblwrap", t)); box.append(el("p", "note", "신호가 지난 뒤 추격 진입하면 백테스트와 달라집니다. 다음 15분봉 시가에서 들어간 경우만 검증된 결과입니다."));
+  } else if (k === "B") {
+    const rows = []; for (const r of an) for (const t of r.B.trades) rows.push([r.c.sym, t]); rows.sort((a, b) => b[1].openT - a[1].openT);
+    const t = el("table", "tb"); t.innerHTML = "<tr><th>코인</th><th>방향</th><th>진입</th><th>결과(R)</th><th>사유</th></tr>";
+    for (const [s, x] of rows.slice(0, 6)) { const tr = el("tr", s === sym ? "me" : null); tr.append(el("td", null, s), el("td", null, x.side > 0 ? "롱" : "숏"), el("td", "num", ft(x.openT)), el("td", "num " + (x.R >= 0 ? "pos" : "neg"), x.open ? "보유중" : (x.R >= 0 ? "+" : "") + x.R.toFixed(2)), el("td", null, x.why)); t.append(tr); }
+    box.append(h("div", "tblwrap", t));
+  } else {
+    const rows = []; for (const r of an) for (const t of r.C.trades) rows.push([r.c.sym, t]); rows.sort((a, b) => b[1].openT - a[1].openT);
+    if (!rows.length) { box.append(el("p", "line dim", "불러온 기간(약 30일)에는 규칙에 맞는 가상 거래가 없었습니다.")); return box; }
+    const t = el("table", "tb"), WHY = { S: "손절", E: "48시간 청산", N: "보유중(평가)" }; t.innerHTML = "<tr><th>코인</th><th>진입</th><th>보유</th><th>결과(R)</th><th>사유</th></tr>";
+    for (const [s, x] of rows.slice(0, 8)) { const tr = el("tr", s === sym ? "me" : null), hrs = Math.round((x.open ? Date.now() - x.openT : x.exitT - x.openT) / H); tr.append(el("td", null, s), el("td", "num", ft(x.openT)), el("td", "num", hrs + "h"), el("td", "num " + (x.R >= 0 ? "pos" : "neg"), (x.R >= 0 ? "+" : "") + x.R.toFixed(2)), el("td", null, WHY[x.why])); t.append(tr); }
+    box.append(h("div", "tblwrap", t));
+    const done = rows.filter((x) => !x[1].open).map((x) => x[1]), sum = done.reduce((p, x) => p + x.R, 0);
+    box.append(el("p", "note", "불러온 최근 약 30일 데이터에 규칙을 그대로 돌린 가상 기록입니다(실제 진입 여부와 무관). 수수료·슬리피지 반영, 펀딩비 제외, 1R = 진입가와 손절가의 차이. 이 기간 마감된 " + done.length + "건 합계 " + (sum >= 0 ? "+" : "") + sum.toFixed(1) + "R — 표본이 작아 참고만 하세요. 백테스트 전체는 전략 정보 화면의 요약을 보세요."));
+  }
+  return box;
+}
+function chartSection(V) {
+  const sec = h("div", "sec cbox"), head = h("div", "c-head"), title = el("h3", "c-title", ""); title.id = "chart-title"; head.append(title);
+  const seg = h("div", "seg"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "보이는 봉 수");
+  for (const key of ["short", "normal", "long"]) { const b = el("button", null, RANGES[key][0]); b.type = "button"; b.dataset.range = key; b.setAttribute("aria-pressed", String(st.range === key)); b.onclick = () => { st.range = key; store.set("range", key); seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.range === key))); drawChart(); }; seg.append(b); }
+  const sg2 = h("div", "seg"), tb = el("button", null, "표로 보기"); tb.type = "button"; tb.id = "tblbtn"; tb.setAttribute("aria-pressed", String(st.table)); tb.onclick = () => { st.table = !st.table; tb.setAttribute("aria-pressed", String(st.table)); drawChart(); }; sg2.append(tb);
+  head.append(seg, sg2); sec.append(head);
+  const ro = h("div", "ro"); ro.id = "ro"; sec.append(ro);
+  const ch = h("div", "chart"); ch.id = "chart"; ch.tabIndex = 0; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", "캔들 차트. 좌우 방향키로 봉을 고르면 값이 위에 표시됩니다."); sec.append(ch);
+  const tw = h("div", "tblwrap"); tw.id = "tblwrap"; tw.hidden = true; sec.append(tw);
+  const lg = h("div", "legend"); lg.id = "legend"; sec.append(lg);
+  return sec;
+}
+function renderDetail() {
+  const dEl = $("detail"), B = st.board; dEl.replaceChildren();
+  if (!B || !st.sel || !B[st.sel.sym]) { dEl.hidden = true; return; }
+  dEl.hidden = false;
+  const V = B[st.sel.sym][st.sel.k], c = V.r.c, an = st.an;
+  const head = h("div", "sec s-head"), bd = h("span", "badge " + V.kind + (V.kind === "sig" && V.side < 0 ? " short" : ""));
+  bd.append(ico(glyphOf(V)), V.full);
+  head.append(el("span", "s-sym", c.sym + "USDT"), el("span", "s-price", px(c.sym, c.price)), el("span", "s-str", "전략 " + V.k + " " + STRMETA[V.k].t + " (" + STRMETA[V.k].d + ")"), bd);
+  dEl.append(head);
+  if (V.skip) dEl.append(h("div", "sec", h("div", "callout", ico("warn"), V.skip)));
+  if (V.big) {
+    const sec = h("div", "sec"), g = h("div", "tk"); for (const x of V.big) g.append(statEl(x)); sec.append(g);
+    if (V.size) { const z = h("div", "sz"); for (const x of V.size) z.append(statEl(x)); sec.append(z); }
+    sec.append(el("p", "basis", "계좌 " + nf(cfg.balance, 0) + " USDT, 거래당 위험 " + cfg.risk + "% 기준입니다(설정에서 바꿀 수 있습니다)."));
+    for (const w of V.warns) sec.append(el("p", "line warn", w));
+    for (const n of V.notes) sec.append(el("p", "note", n));
+    dEl.append(sec);
+  }
+  const ck = h("div", "sec"); ck.append(el("h3", null, "조건 확인"));
+  const ul = h("ul", "checks");
+  for (const x of V.checks) {
+    const li = h("li", x.st), body = h("div"); li.dataset.id = x.id; li.append(h("span", "ic", ico(x.st === "ok" ? "ok" : x.st === "no" ? "no" : "info")));
+    body.append(el("span", "ct" + (x.v == null ? " solo" : ""), x.t)); if (x.v != null) body.append(el("span", "cv", x.v)); if (x.s) body.append(el("span", "cs", x.s)); li.append(body); ul.append(li);
+  }
+  ck.append(ul);
+  for (const l of V.lines) ck.append(el("p", "line" + (l.cls ? " " + l.cls : ""), l.t));
+  if (V.chips) { const tg = h("div", "trg"); for (const x of V.chips) { const s = el("span", x.cls, x.t); s.title = x.title; tg.append(s); } ck.append(tg, el("p", "note", V.chipNote)); }
+  if (V.next) ck.append(el("p", "note", V.next));
+  ck.append(el("p", "note", countNote(V.k, an)));
+  dEl.append(ck);
+  dEl.append(chartSection(V));
+  dEl.append(recordsEl(V.k, an, V.sym));
+  drawChart();
+}
+
+/* ───── 전략 정보 화면: 백테스트 요약 · 규칙 · 판정판 읽는 법 (문구는 이전 화면과 동일) ───── */
+const SUM = {
+  A: { h: "전략 A · 확정 스윙(롱) — 백테스트 요약", d: [["+137%", "누적(3년6개월, 위험 1%)"], ["-16%", "최대낙폭 (일별평가 -21%)"], ["연 53건", "거래 빈도 (승률 31%)"], ["+48 / +24 / +20 / +8%", "2023·24·25·26 (연도별)"], ["+15%", "최근 6개월"], ["+0.49R", "거래당 평균 손익"]],
+    n: "BTC+ETH+SOL, 동시 3개 제한, 거래당 위험 1%, 수수료·슬리피지 반영(펀딩비 제외), 2023-04~2026-10. 이 화면의 14개 조건 중 하나라도 뜨면 진입하는 합집합 기준입니다. 세 전략 중 낙폭이 가장 작은 대신 수익도 가장 작고, 상위 10건을 빼면 누적 +9%입니다." },
+  B: { h: "전략 B · 일목 4시간 — 백테스트 요약", d: [["+867%", "누적(3년6개월, 위험 1%)"], ["-24%", "최대낙폭 (일별평가 -38%)"], ["연 97건", "거래 빈도 (승률 26%)"], ["+67 / +158 / +58 / +41%", "2023·24·25·26 (연도별)"], ["+28%", "최근 6개월(미청산 평가 포함)"], ["1%", "무작위 대조(낮을수록 좋음)"]],
+    n: "후보 전략입니다. 조합 769개 중 고른 결과라 낙관적일 수 있고, 일별 평가 낙폭이 -38%로 A(-21%)보다 큽니다. 수익이 소수의 큰 추세에 몰려 있어 상위 10건을 빼면 누적이 -19%입니다. 동시 3개 제한 기준, 롱·숏 모두 포함. 실거래 전 모의 기록으로 확인을 권장합니다." },
+  C: { h: "전략 C · 단기(최대 48시간, 롱) — 백테스트 요약", d: [["+941%", "누적(3년6개월, 위험 1%)"], ["-27%", "최대낙폭 (일별평가도 -27%)"], ["연 186건", "거래 빈도 (승률 27%)"], ["+97 / +117 / +13 / +116%", "2023·24·25·26 (연도별)"], ["+89%", "최근 6개월"], ["2~3%", "가상시장 대조(낮을수록 좋음)"]],
+    n: "후보 전략입니다. 약 19만 개 설정에서 고른 구조라 낙관적일 수 있어, 선택에 쓰지 않은 6개 코인에서는 거래당 평균 손익이 +0.26R(3코인 +0.41R)로 낮았습니다. 수익이 소수의 큰 추세에 몰려 있어(상위 10건 제외 누적 +77%) 최장 약 7개월 정체와 22연속 손실이 있었습니다. 위험은 0.5% 이하를 권장합니다(낙폭이 약 절반). 펀딩비는 빠져 있고, 롱이 0.03%/8h를 내면 누적이 약 +560%입니다." }
+};
+const RULES_C = ["코인: BTC·ETH·SOL (USDT 무기한). 롱만, 코인당 동시 1포지션(최대 3개). 숏은 검증에서 효과가 없어 쓰지 않습니다.",
+  "필터(4시간봉 일목 상승): 종가가 구름 위이고 전환선(9) > 기준선(26). 구름은 26봉 전에 계산된 값만 쓰고, 마감된 4시간봉만 봅니다(미래 정보 없음).",
+  "신호 7종(1시간봉 마감 기준, 거래량비 = 그 봉 거래량 ÷ 직전 20봉 평균): ① 돈치안 48 — 종가가 직전 48봉 고점을 넘고 거래량 1.5배 이상 ② 돈치안 24 — 같은 조건, 24봉 ③ 전일(UTC) 고점을 처음 넘음 + 거래량 1.5배 ④ 켈트너 — 종가가 EMA20+2×ATR14 위로 처음 올라섬 ⑤ 피벗 R1 — 전일(UTC) 피벗 R1을 처음 넘음 ⑥ 볼린저 상단 — SMA20+2σ 위로 처음 올라서며 거래량 1.5배 ⑦ 스퀴즈 — 직전 봉 밴드폭이 최근 200봉 하위 20% 이하였고 종가가 볼린저 상단 위.",
+  "투표: 방금 마감한 봉에서 신호가 하나 이상 나오고, 최근 6봉(그 봉 포함)에 서로 다른 신호가 2종 이상이면 진입 신호입니다. 이전 봉의 신호는 당시 필터 통과 여부와 상관없이 세고, 필터는 신호가 나온 봉에서만 확인합니다.",
+  "진입: 신호 봉 다음 1시간봉 시가. 손절: 신호 봉 종가 − 1.5×ATR(14, 1시간봉).",
+  "청산: 손절가에 닿으면 손절(시가가 손절가 아래로 갭이면 시가 체결). 아니면 진입봉 포함 48번째 1시간봉 마감 때 시장가 청산. 익절 목표 없음. 한 봉에서 둘 다 해당하면 손절 우선.",
+  "재진입: 코인당 한 번에 1포지션. 청산이 일어난 봉의 마감 신호부터 다시 진입할 수 있습니다.",
+  "크기: 거래당 계좌 위험 = min(설정 위험%, 3×손절폭), 레버리지 3배 상한. 백테스트는 1%였지만 실전은 0.5% 이하를 권장합니다.",
+  "비용: 수수료 편도 0.05% + 슬리피지 0.01% 반영, 펀딩비는 미반영. 수익이 큰 추세 몇 건에 몰려 있어 한동안 손실이 이어질 수 있습니다(백테스트 최장 22연속 손실)."];
+const RULES_A = ["코인: BTC·ETH·SOL (USDT 무기한). 롱만.", "신호: 일·주봉 핵심 가격대(일봉 스윙고점 3·7, 주봉 스윙고점 2, 30·60일 고점, 13·26주 고점)를 1시간 또는 4시간봉 종가가 처음 넘고, 그 봉 거래량이 직전 20봉 평균의 2배 이상.",
+  "진입: 신호 봉 마감 후 다음 15분봉 시가(눌림을 기다리지 않음).", "손절: 최근 16개 15분봉 최저가 − 0.5×ATR(15분), 진입가 대비 0.4~3.5%로 제한.", "익절: +10.5%에서 절반, 손절을 본전으로 올리고 나머지는 +28%. 최대 보유 10일.", "크기: 거래당 계좌의 1%를 잃는 수량, 레버리지 3배 상한, 동시 3개."];
+const RULES_B = ["코인: BTC·ETH·SOL. 롱·숏 모두.", "신호(4시간봉): 전환선(9)이 기준선(26)을 위로 교차하고 종가가 구름 위 → 롱. 아래로 교차하고 종가가 구름 아래 → 숏.", "구름은 26봉 전에 계산된 선행스팬만 사용해 미래 정보를 쓰지 않습니다.", "진입: 신호 봉 마감 후 다음 4시간봉 시가.", "손절: 기준선 위치(진입가 대비 롱 1~8%, 숏 1~8%로 제한).", "청산: 4시간봉 종가가 구름 반대편으로 나가면 다음 봉 시가. 익절 목표 없음(추세 추종).", "크기: 거래당 1% 위험, 레버리지 3배 상한. 200일선·거래량 필터는 검증에서 도움이 되지 않아 쓰지 않습니다."];
+function renderInfo() {
+  const box = $("screen-info"); box.replaceChildren();
+  const tabs = h("div", "itabs"); tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "전략");
+  for (const k of STR) { const b = h("button", null, "전략 " + k + " " + STRMETA[k].t, el("small", null, STRMETA[k].d)); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === st.itab)); b.dataset.s = k; b.onclick = () => { st.itab = k; store.set("itab", k); renderInfo(); }; tabs.append(b); }
+  box.append(tabs);
+  const m = SUM[st.itab], p1 = h("section", "panel"); p1.id = "summary"; p1.append(el("h2", null, m.h));
+  const g = h("div", "sum"); for (const [v, k] of m.d) { const x = h("div"), b = el("b", null, v); b.style.fontSize = v.length > 12 ? "12px" : "20px"; x.append(b, el("span", null, k)); g.append(x); } p1.append(g, el("p", "note", m.n)); box.append(p1);
+  const p2 = h("section", "panel"); p2.id = "rules"; p2.append(el("h2", null, "전략 " + st.itab + " 규칙")); const ul = el("ul"); for (const t of (st.itab === "C" ? RULES_C : st.itab === "A" ? RULES_A : RULES_B)) ul.append(el("li", null, t)); p2.append(ul); box.append(p2);
+  const p3 = h("section", "panel"); p3.append(el("h2", null, "판정판 읽는 법"));
+  const lr = (name, cls, title, txt) => { const r = h("div", "legrow"); const g2 = ico(name); if (cls) g2.classList.add(cls); r.append(g2, h("div", null, el("b", null, title), el("p", null, txt))); p3.append(r); };
+  lr("wait", "", "대기", "지금 이 전략의 진입 조건이 맞지 않습니다. 칸을 누르면 어떤 조건이 부족한지 보입니다.");
+  lr("long", "pos", "롱 신호", "방금 마감한 봉에서 진입 조건이 충족됐습니다. 상세에서 진입가, 손절, 수량을 확인하세요.");
+  lr("short", "neg", "숏 신호", "전략 B에서만 나옵니다. 롱 신호와 같은 방식으로 보세요.");
+  lr("hold", "", "보유", "이 규칙대로 진입했다고 가정한 가상 상태입니다. 실제 포지션과는 무관하며, R은 진입가와 손절가의 차이를 1로 본 손익입니다.");
+  lr("skip", "", "진입 불가", "신호는 떴지만 진행 중인 봉이 이미 손절가를 건드리는 등 규칙상 들어갈 수 없는 경우입니다(전략 C).");
+  p3.append(el("h3", null, "판정 시점"), el("p", "note", "A와 C는 1시간봉이 마감될 때, B는 4시간봉이 마감될 때 판정합니다. A는 4시간봉 마감도 함께 봅니다. 화면은 60초마다 시세를 다시 받아 같은 규칙으로 다시 계산합니다."));
+  box.append(p3);
+}
+
+/* ───── 차트: 캔들 + 거래량 + 전략별 표시 + 진입/손절/익절선 + 값 읽기(마우스·터치·키보드) ───── */
+const RANGES = { short: ["짧게", 40, 3.2], normal: ["보통", 90, 3.2], long: ["길게", 200, 2.2] };   // [이름, 보이는 봉 수, 봉 간격 최소 px]
+function chartW() { const w = $("chart").clientWidth; return w >= 280 ? Math.round(w) : 700; }   // 그래프 폭 = 상자 폭(좁은 화면에서도 글자 크기 유지)
+function drawCandles(mk, X, Y, step, b, a, nc, F, last, up, dn) { // 캔들(세 전략 공통): 마감 봉 a..nc + 진행 중 봉 F({o,h,l,c}, 인덱스 last, 없으면 null). 상승봉(종가 ≥ 시가)·하락봉의 심지와 몸통을 색별로 한 경로에 모아 그린다. 진행 중 봉은 흐리게
+  const bw = Math.max(1.4, Math.min(9, step * 0.68)), cd = { u: ["", ""], d: ["", ""] }, cf = { u: ["", ""], d: ["", ""] };
+  const addC = (t, i, oo, hh, ll, cc) => { const k = cc >= oo ? "u" : "d", x = X(i), y1 = Y(Math.max(oo, cc)), y2 = Y(Math.min(oo, cc));
+    t[k][0] += "M" + x.toFixed(1) + "," + Y(hh).toFixed(1) + "V" + Y(ll).toFixed(1);
+    t[k][1] += "M" + (x - bw / 2).toFixed(1) + "," + y1.toFixed(1) + "h" + bw.toFixed(1) + "v" + Math.max(1, y2 - y1).toFixed(1) + "h" + (-bw).toFixed(1) + "Z"; };
+  for (let i = a; i <= nc; i++) addC(cd, i, b.o[i], b.h[i], b.l[i], b.c[i]);
+  if (F) addC(cf, last, F.o, F.h, F.l, F.c);
+  for (const [t, op] of [[cd, 1], [cf, 0.5]]) for (const k of ["u", "d"]) if (t[k][0]) { const col = k === "u" ? up : dn; mk("path", { d: t[k][0], fill: "none", stroke: col, "stroke-width": 1, opacity: op, "shape-rendering": "crispEdges" }); mk("path", { d: t[k][1], fill: col, stroke: "none", opacity: op, "shape-rendering": "crispEdges" }); }
+}
+function niceTicks(lo, hi, n) { const raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag, stp = (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * mag, out = []; for (let v = Math.ceil(lo / stp) * stp; v <= hi + stp * 1e-9; v += stp) out.push(+v.toPrecision(12)); return out; }
+const tg = (v) => nf(v, v >= 1000 ? 0 : v >= 10 ? 2 : 3);
+const fmtV = (v) => v >= 1e9 ? (v / 1e9).toFixed(1) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(1) + "K" : v.toFixed(0);
+function chartSpec(r, k) {   // 전략별 차트 바탕: A·B = 4시간봉, C = 1시간봉(진행 중 봉은 현재가를 종가로 보고, 고저에 현재가를 포함)
+  const c = r.c, price = c.price;
+  if (k === "C") { const C = r.C, b = C.b, nc = C.nc, hasF = !!c.fr1, last = nc + (hasF ? 1 : 0); return { b, nc, last, hasF, tf: "1시간", F: hasF ? { o: b.o[last], h: Math.max(b.h[last], price), l: Math.min(b.l[last], price), c: price, v: b.v[last], t: b.t[last] } : null, vr: S.volRatio(b) }; }
+  const b = c.b4, nc = b.n - 1, hasF = !!c.fr4, last = nc + (hasF ? 1 : 0);
+  return { b, nc, last, hasF, tf: "4시간", F: hasF ? { o: +c.fr4[1], h: Math.max(+c.fr4[2], price), l: Math.min(+c.fr4[3], price), c: price, v: +c.fr4[5], t: +c.fr4[0] } : null, vr: S.volRatio(b) };
+}
+function barAt(sp, t) {   // 시각 t(ms)가 속한 봉의 인덱스(없으면 -1)
+  if (sp.hasF && t >= sp.F.t) return sp.last;
+  let lo = 0, hi = sp.nc; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (sp.b.t[m] <= t) lo = m; else hi = m - 1; }
+  return sp.b.t[lo] <= t ? lo : -1;
+}
+let chartApi = null;   // 현재 차트의 십자선 제어(바깥을 누르면 닫기 위해)
+function tableEl(sp, r, a, last, sym) {
+  const t = el("table", "tb"), b = sp.b; t.innerHTML = "<caption class=\"sr\">최근 봉의 시가·고가·저가·종가·거래량</caption><thead><tr><th>시각</th><th>시가</th><th>고가</th><th>저가</th><th>종가</th><th>거래량</th><th>평균 대비</th></tr></thead>";
+  const tb = document.createElement("tbody");
+  for (let i = last; i >= Math.max(a, last - 59); i--) {
+    const f = sp.hasF && i === last, o = f ? sp.F : { t: b.t[i], o: b.o[i], h: b.h[i], l: b.l[i], c: b.c[i], v: b.v[i] }, tr = document.createElement("tr"), q = f ? NaN : sp.vr[i];
+    tr.append(el("td", "num", ft(o.t) + (f ? " (진행 중)" : "")), el("td", "num", px(sym, o.o)), el("td", "num", px(sym, o.h)), el("td", "num", px(sym, o.l)), el("td", "num " + (o.c >= o.o ? "pos" : "neg"), px(sym, o.c)), el("td", "num", nf(o.v, o.v >= 100 ? 0 : 2)), el("td", "num", Number.isFinite(q) ? q.toFixed(1) + "배" : "–"));
+    tb.append(tr);
+  }
+  t.append(tb); return t;
+}
+function drawChart() {
+  if (st.screen !== "board" || !st.board || !st.sel || !$("chart")) return;
+  const V = st.board[st.sel.sym][st.sel.k], r = V.r, c = r.c, k = V.k, price = c.price, sp = chartSpec(r, k), b = sp.b, nc = sp.nc, last = sp.last, F = sp.F, hasF = sp.hasF;
+  const host = $("chart"), ro = $("ro"), tw = $("tblwrap"); host.hidden = false; ro.hidden = false; tw.hidden = true;
+  const W = chartW(), ml = 8, mr = 52, padPx = 26, Hp = Math.max(236, Math.min(360, Math.round(W * 0.7))), gap = 8, Hv = 54, xb = 20;
+  const plotL = ml, plotR = W - mr, rg = RANGES[st.range] || RANGES.normal;
+  const K = Math.max(24, Math.min(rg[1], Math.floor((plotR - plotL - padPx) / rg[2]))), a = Math.max(0, last - K + 1), cnt = last - a + 1;
+  const step = (plotR - plotL - padPx) / cnt, X = (i) => plotL + (i - a + 0.5) * step;
+  const title = c.sym + " " + sp.tf + "봉 캔들 (최근 " + cnt + "봉)" + (k === "B" ? " · 일목 구름" : k === "A" ? " · 위쪽 돌파 레벨" : " · 4시간 일목 필터 통과 구간 음영");
+  $("chart-title").textContent = title;
+  const lg = $("legend"); lg.replaceChildren();
+  if (st.table) { host.hidden = true; ro.hidden = true; tw.hidden = false; tw.replaceChildren(tableEl(sp, r, a, last, c.sym)); lg.append(el("span", null, "표는 최근 " + Math.min(60, cnt) + "봉을 최신순으로 보여 줍니다.")); chartApi = null; return; }
+  const plan = (V.kind === "sig" || V.kind === "hold") ? V.plan : null;
+  // 세로 범위: 보이는 봉 + 현재가 + (진입·손절) + 가까운 목표·레벨. 너무 먼 것은 범위를 늘리지 않고 위쪽 글자로만 알려 캔들이 눌리지 않게 함
+  let lo = Infinity, hi = -Infinity; for (let i = a; i <= nc; i++) { lo = Math.min(lo, b.l[i]); hi = Math.max(hi, b.h[i]); }
+  if (F) { lo = Math.min(lo, F.l); hi = Math.max(hi, F.h); } lo = Math.min(lo, price); hi = Math.max(hi, price);
+  const R0 = (hi - lo) || price * 0.01, tps = [];
+  if (plan) { lo = Math.min(lo, plan.entry, plan.stop); hi = Math.max(hi, plan.entry, plan.stop); if (plan.tp1 != null) for (const [id, nm, v] of [["tp1", "익절1", plan.tp1], ["tp2", "익절2", plan.tp2]]) tps.push({ id, nm, v, inside: v - hi <= 0.5 * R0 }); for (const t of tps) if (t.inside) hi = Math.max(hi, t.v); }
+  const nextLv = k === "A" && r.A.next ? r.A.next : null, nextIn = !!(nextLv && nextLv.level - hi <= 1.0 * R0); if (nextIn) hi = Math.max(hi, nextLv.level);
+  if (k === "B") { const I = r.B.I; for (let i = a; i <= nc; i++) for (const v of [I.top[i], I.bot[i]]) if (Number.isFinite(v) && v > lo - 0.5 * R0 && v < hi + 0.5 * R0) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+  const span = (hi - lo) || 1; lo -= span * 0.1; hi += span * (k === "B" ? 0.1 : 0.06);   // 아래·위에 신호 표시가 들어갈 자리
+  const pinT0 = [];   // 그림 위쪽 밖에 있는 목표·레벨은 그림 위의 전용 줄에 "↑ 값 이름"으로만 알림(범례에 뜻 설명). 그림 안 글자와 겹치지 않도록 줄을 따로 둠
+  for (const t of tps) if (!t.inside) pinT0.push(["↑ " + tg(t.v) + " " + t.nm, "up"]);
+  if (nextLv && !nextIn) pinT0.push(["↑ " + tg(nextLv.level) + " 위 레벨", "acc"]);
+  const mt = 10 + 13 * pinT0.length, Ht = mt + Hp + gap + Hv + xb;
+  const Y = (v) => mt + (1 - (v - lo) / (hi - lo)) * Hp, y0v = mt + Hp + gap + Hv, yp = Y(price);
+  const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + Ht); svg.setAttribute("width", W); svg.setAttribute("height", Ht); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", c.sym + " " + sp.tf + "봉 캔들 차트, 현재가 " + tg(price) + ". 아래 표 보기 버튼으로 같은 값을 표로 볼 수 있습니다.");
+  Object.entries({ "data-a": a, "data-last": last, "data-lo": lo, "data-hi": hi, "data-mt": mt, "data-hp": Hp, "data-step": step, "data-plotl": plotL, "data-plotr": plotR }).forEach(([n, v]) => svg.setAttribute(n, v));
+  const mk = (t, at, txt, par) => { const e = document.createElementNS(ns, t); for (const kk in at) e.setAttribute(kk, at[kk]); if (txt != null) e.textContent = txt; (par || svg).append(e); return e; };
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const col = { dim: css("--ink-3"), ink: css("--ink"), ink2: css("--ink-2"), acc: css("--accent"), up: css("--up"), dn: css("--down"), upf: css("--up-fill"), dnf: css("--down-fill"), onf: css("--on-fill"), sf: css("--surface"), pg: css("--page"), line: css("--line"), wash: css("--wash") };
+  const halo = { stroke: col.sf, "stroke-width": 3, "stroke-linejoin": "round", "paint-order": "stroke" };
+  const defs = mk("defs"), cp = mk("clipPath", { id: "clipP" }, null, defs); mk("rect", { x: plotL, y: mt, width: plotR - plotL, height: Hp }, null, cp);
+  // 가격 눈금(굵은 숫자 위주, 얇은 실선)
+  const ticks = niceTicks(lo, hi, 5), sT = ticks.length > 1 ? ticks[1] - ticks[0] : 1, dec = sT >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(sT))), gG = mk("g", { "data-role": "grid" });
+  for (const v of ticks) { const y = Y(v); mk("line", { x1: plotL, x2: plotR, y1: y, y2: y, stroke: col.line, "stroke-width": 1 }, null, gG); }   // 눈금 글자는 가격표 위치가 정해진 뒤에 그림(가격표와 겹치는 눈금 글자는 생략)
+  const gC = mk("g", { "clip-path": "url(#clipP)", "data-role": "plot" }), mkC = (t, at, txt) => mk(t, at, txt, gC);
+  // 바탕 표시: C = 4시간 필터 통과 구간 음영, B = 일목 구름
+  if (k === "C") { const C = r.C; for (let i = a; i <= nc;) { if (!C.fil[i]) { i++; continue; } let j = i; while (j + 1 <= nc && C.fil[j + 1]) j++; mkC("rect", { x: X(i) - step / 2, y: mt, width: (j - i + 1) * step, height: Hp, fill: col.wash, stroke: "none", "data-role": "filter" }); i = j + 1; } }
+  if (k === "B") { const I = r.B.I, pts = []; for (let i = a; i <= nc; i++) if (Number.isFinite(I.top[i])) pts.push(i); if (pts.length > 1) mkC("path", { "data-role": "cloud", d: "M" + pts.map((i) => X(i).toFixed(1) + "," + Y(I.top[i]).toFixed(1)).join("L") + "L" + pts.slice().reverse().map((i) => X(i).toFixed(1) + "," + Y(I.bot[i]).toFixed(1)).join("L") + "Z", fill: col.wash, stroke: "none" }); }
+  // 진입·손절 구간(위험 구간 음영)
+  const ei = plan ? (plan.e != null ? plan.e : (hasF ? last : last + 1)) : null, x0 = plan ? (ei <= a ? plotL : Math.min(X(ei) - step / 2, plotR)) : 0;
+  if (plan) {
+    const yE = Y(plan.entry), yS = Y(plan.stop);
+    mkC("rect", { x: plotL, y: Math.min(yE, yS), width: plotR - plotL, height: Math.abs(yS - yE), fill: col.dn, opacity: 0.09, "data-role": "risk-zone" });
+    const t1 = tps.find((t) => t.id === "tp1" && t.inside); if (t1) mkC("rect", { x: plotL, y: Math.min(yE, Y(t1.v)), width: plotR - plotL, height: Math.abs(Y(t1.v) - yE), fill: col.up, opacity: 0.07, "data-role": "reward-zone" });
+  }
+  // A: 위쪽 돌파 레벨(점선). 가까운 위쪽 레벨은 실선으로 강조
+  const lvLab = [];
+  if (k === "A") {
+    const lv = r.A.levels.filter((x) => x.level > lo && x.level < hi).sort((p, q) => q.level - p.level), gr = [], lvDec = (v) => v >= 1000 ? 0 : 2;
+    for (const x of lv) { const kk = nf(x.level, lvDec(x.level)), g = gr.find((q) => q.key === kk); if (g) g.m.push(x); else gr.push({ key: kk, level: x.level, m: [x] }); }   // 같은 가격의 레벨(예: 일봉 스윙고점 = 30일 고점 = 60일 고점)은 선 하나·글자 하나로 묶음
+    for (const g of gr) { const y = Y(g.level), isN = !!nextLv && g.m.some((x) => x.id === nextLv.id); mkC("line", { x1: plotL, x2: plotR, y1: y, y2: y, stroke: col.acc, "stroke-width": isN ? 1.5 : 1, "stroke-dasharray": isN ? "none" : "4 3", "data-line": "level", "data-price": g.level }); }
+    const LG = 12.5, lab = gr.map((g) => ({ y: Math.max(mt + 9, Y(g.level) - 3), t: g.key + " " + g.m[0].name + (g.m.length > 1 ? " 외 " + (g.m.length - 1) + "개" : ""), tip: g.m.map((x) => x.name).join(", ") }));   // 글자는 선 바로 위에 두고(맨 위는 그림 밖으로 안 나가게)
+    let prev = -1e9; for (const q of lab) { q.y = Math.max(q.y, prev + LG); prev = q.y; }   // 위에서부터: 가격이 가까운 레벨 글자가 서로 겹치지 않게 12.5px 이상 띄움
+    let nxt = mt + Hp - 3 + LG; for (let i = lab.length - 1; i >= 0; i--) { lab[i].y = Math.min(lab[i].y, nxt - LG); nxt = lab[i].y; }   // 아래쪽이 그래프 밖으로 밀리면 위로 되돌려 모두 그래프 안에 둠
+    for (const q of lab) lvLab.push(q);
+  }
+  mkC("line", { x1: plotL, x2: plotR, y1: yp, y2: yp, stroke: col.dim, "stroke-width": 1, "stroke-dasharray": "1 3", "data-line": "price", "data-price": price });   // 현재가 점선(캔들 뒤)
+  const gCan = mkC("g", { "data-role": "candles" }), mkCan = (t, at, txt) => mk(t, at, txt, gCan);
+  drawCandles(mkCan, X, Y, step, b, a, nc, F, last, col.up, col.dn);
+  // B: 전환선·기준선(캔들 색과 겹치지 않게 파랑·회색)
+  if (k === "B") { const I = r.B.I, line = (arr, cl, w, nm) => { const p = []; for (let i = a; i <= nc; i++) if (Number.isFinite(arr[i])) p.push(X(i).toFixed(1) + "," + Y(arr[i]).toFixed(1)); if (p.length > 1) mkC("path", { d: "M" + p.join("L"), fill: "none", stroke: cl, "stroke-width": w, "stroke-linejoin": "round", "data-role": nm }); }; line(I.kij, col.ink2, 1.6, "kijun"); line(I.ten, col.acc, 1.6, "tenkan"); }
+  // 신호 표시(롱·진입 = 위로 향한 삼각형은 봉 아래, 숏 = 아래로 향한 삼각형은 봉 위)
+  const tri = (x, y, upD, s, cl) => mkC("path", { d: upD ? "M" + x.toFixed(1) + "," + (y - s).toFixed(1) + "L" + (x + s * 0.9).toFixed(1) + "," + (y + s * 0.7).toFixed(1) + "L" + (x - s * 0.9).toFixed(1) + "," + (y + s * 0.7).toFixed(1) + "Z" : "M" + x.toFixed(1) + "," + (y + s).toFixed(1) + "L" + (x + s * 0.9).toFixed(1) + "," + (y - s * 0.7).toFixed(1) + "L" + (x - s * 0.9).toFixed(1) + "," + (y - s * 0.7).toFixed(1) + "Z", fill: cl, stroke: col.sf, "stroke-width": 1.5, "paint-order": "stroke", "stroke-linejoin": "round", "data-role": "marker" });
+  const evAt = {};   // A: 봉 인덱스 → 그 봉에 속한 돌파 목록(읽기 창에서 사용)
+  if (k === "A") { const seen = new Set(); for (const e of r.A.all) { const j = barAt(sp, e.closeT - 1); if (j < a || j > last) continue; (evAt[j] = evAt[j] || []).push(e); if (!seen.has(j)) { seen.add(j); tri(X(j), Y(sp.hasF && j === last ? F.l : b.l[j]) + 9, true, 4.6, col.up); } } }
+  if (k === "B") for (let i = a; i <= nc; i++) { const s = r.B.sig[i]; if (s) tri(X(i), s > 0 ? Y(b.l[i]) + 9 : Y(b.h[i]) - 9, s > 0, 4.6, s > 0 ? col.up : col.dn); }
+  if (k === "C") { const C = r.C, ent = new Set(C.trades.map((t) => t.sig)); for (let i = a; i <= nc; i++) { const any = S.C_TRIGS.some((t) => C.T[t.id][i]); if (ent.has(i)) tri(X(i), Y(b.l[i]) + 10, true, 5.4, col.up); else if (any) mkC("circle", { cx: X(i), cy: Y(b.l[i]) + 7, r: 2.8, fill: "none", stroke: col.acc, "stroke-width": 1.3, "data-role": "marker" }); } }
+  // 진입·손절·익절선(왼쪽 = 진입 전 구간은 흐린 점선, 오른쪽 = 진입 이후 실선)
+  const pl = [];
+  if (plan) {
+    pl.push({ id: "entry", y: Y(plan.entry), v: plan.entry, cl: col.ink, dash: null, nm: "진입" }, { id: "stop", y: Y(plan.stop), v: plan.stop, cl: col.dn, dash: null, nm: "손절" });
+    for (const t of tps) if (t.inside) pl.push({ id: t.id, y: Y(t.v), v: t.v, cl: col.up, dash: "5 4", nm: t.nm });
+    for (const q of pl) {
+      if (x0 > plotL + 1) mkC("line", { x1: plotL, x2: x0, y1: q.y, y2: q.y, stroke: q.cl, "stroke-width": 1, "stroke-dasharray": "2 4", opacity: 0.45 });
+      mkC("line", { x1: x0, x2: plotR, y1: q.y, y2: q.y, stroke: q.cl, "stroke-width": 1.4, "stroke-dasharray": q.dash || "none", "data-line": q.id, "data-price": q.v });
+    }
+  }
+  // 글자: 레벨 이름(왼쪽), 선 이름(오른쪽 끝). 캔들 위에 겹쳐도 읽히게 테두리를 둠
+  for (const q of lvLab) { const e = mk("text", Object.assign({ x: plotL + 3, y: q.y, fill: col.acc, "font-size": 10.5, "font-weight": 600, "data-role": "level-label" }, halo), q.t), tt = document.createElementNS(ns, "title"); tt.textContent = q.tip; e.append(tt); }
+  const stopAbove = !!plan && plan.stop > plan.entry;   // 숏(손절이 진입보다 위)이면 글자 방향을 뒤집어 두 글자가 선 사이에서 겹치지 않게
+  const lblDy = (id) => id === "stop" ? (stopAbove ? -4 : 12) : id === "entry" ? (stopAbove ? 12 : -4) : (stopAbove ? 12 : -4);   // 익절 글자는 이익 쪽(롱은 위)
+  for (const q of pl) mk("text", Object.assign({ x: plotR - 4, y: q.y + lblDy(q.id), fill: q.id === "stop" ? col.dn : q.id === "entry" ? col.ink : col.up, "font-size": 10.5, "font-weight": 700, "text-anchor": "end", "data-role": "line-label", "data-id": q.id }, halo), q.nm + (q.id === "entry" && Math.abs(q.y - yp) < 3 ? "(현재가)" : ""));
+  pinT0.forEach(([t, kd], i) => mk("text", { x: plotR - 4, y: 11 + 13 * i, fill: kd === "up" ? col.up : col.acc, "font-size": 10.5, "font-weight": 600, "text-anchor": "end", "data-role": "pin" }, t));
+  // 오른쪽 가격표(겹치면 17px 이상 띄워 아래위로 밀어 줌)
+  const tags = [{ y: yp, t: tg(price), kind: "price" }];
+  for (const q of pl) tags.push({ y: q.y, t: tg(q.v), kind: q.id === "stop" ? "stop" : q.id === "entry" ? "entry" : "tp" });
+  if (nextLv && nextIn) tags.push({ y: Y(nextLv.level), t: tg(nextLv.level), kind: "level" });
+  if (plan && Math.abs(Y(plan.entry) - yp) < 3) tags.shift();   // 신규 신호는 진입가 = 현재가라 가격표 하나로 합침
+  tags.sort((p, q) => p.y - q.y); let pv = -1e9; for (const t of tags) { t.y2 = Math.max(t.y, pv + 17); pv = t.y2; }
+  let nx = mt + Hp - 8 + 17; for (let i = tags.length - 1; i >= 0; i--) { tags[i].y2 = Math.min(tags[i].y2, nx - 17); nx = tags[i].y2; }
+  for (const t of tags) {
+    const y = Math.max(mt + 8, t.y2), solid = { price: [col.ink, col.pg, "none"], stop: [col.dnf, col.onf, "none"], tp: [col.upf, col.onf, "none"], entry: [col.sf, col.ink, col.ink], level: [col.sf, col.ink, col.acc] }[t.kind];
+    mk("rect", { x: plotR + 2, y: y - 8, width: mr - 3, height: 16, rx: 3, fill: solid[0], stroke: solid[2], "stroke-width": 1.5, "data-tag": t.kind }); mk("text", { x: plotR + 2 + (mr - 3) / 2, y: y + 3.8, fill: solid[1], "font-size": 10.5, "font-weight": 700, "text-anchor": "middle" }, t.t);
+  }
+  for (const v of ticks) { const y = Y(v); if (tags.every((t) => Math.abs(y - Math.max(mt + 8, t.y2)) >= 14)) mk("text", { x: plotR + 5, y: y + 3.5, fill: col.dim, "font-size": 10.5, "data-role": "tick" }, nf(v, dec), gG); }   // 가격표와 겹치는 눈금 글자는 생략(선은 그대로)
+  // 거래량(아래 막대). 상승·하락은 캔들과 같은 색을 흐리게
+  let vmax = 0; for (let i = a; i <= nc; i++) vmax = Math.max(vmax, b.v[i]); if (F) vmax = Math.max(vmax, F.v); vmax = vmax || 1;
+  const wv = Math.max(1.4, Math.min(10, step * 0.72)), vb = { u: "", d: "", fu: "", fd: "" }, Yv = (v) => y0v - (v / vmax) * (Hv - 4);
+  const addV = (key, i, v) => { vb[key] += "M" + (X(i) - wv / 2).toFixed(1) + "," + y0v.toFixed(1) + "V" + Yv(v).toFixed(1) + "h" + wv.toFixed(1) + "V" + y0v.toFixed(1) + "Z"; };
+  for (let i = a; i <= nc; i++) addV(b.c[i] >= b.o[i] ? "u" : "d", i, b.v[i]); if (F) addV(F.c >= F.o ? "fu" : "fd", last, F.v);
+  const gV = mk("g", { "data-role": "volume" }); mk("line", { x1: plotL, x2: plotR, y1: y0v, y2: y0v, stroke: col.line, "stroke-width": 1 }, null, gV);
+  for (const [key, cl, op] of [["u", col.up, 0.45], ["d", col.dn, 0.45], ["fu", col.up, 0.22], ["fd", col.dn, 0.22]]) if (vb[key]) mk("path", { d: vb[key], fill: cl, opacity: op, "shape-rendering": "crispEdges" }, null, gV);
+  mk("text", Object.assign({ x: plotL + 2, y: mt + Hp + gap + 11, fill: col.dim, "font-size": 10.5 }, halo), "거래량", gV); mk("text", { x: plotR + 5, y: mt + Hp + gap + 11, fill: col.dim, "font-size": 10.5 }, fmtV(vmax), gV);
+  // 시간 눈금(처음·중간·끝)
+  const nl = Math.max(2, Math.min(5, Math.floor((plotR - plotL) / 120)));
+  for (let j = 0; j < nl; j++) { const i = a + Math.round(j * (last - a) / (nl - 1)), bar = sp.hasF && i === last ? F : { t: b.t[i] }, anc = j === 0 ? "start" : j === nl - 1 ? "end" : "middle", x = j === 0 ? plotL : j === nl - 1 ? plotR - padPx + step / 2 : X(i); mk("text", { x, y: Ht - 5, fill: col.dim, "font-size": 10.5, "text-anchor": anc }, ft(bar.t)); }
+  // 십자선 + 값 읽기
+  const barOf = (i) => (hasF && i === last) ? { t: F.t, o: F.o, h: F.h, l: F.l, c: F.c, v: F.v, forming: true } : { t: b.t[i], o: b.o[i], h: b.h[i], l: b.l[i], c: b.c[i], v: b.v[i], forming: false };
+  const buildRo = (i, tgt) => {   // 값 창 한 봉 분량을 tgt 안에 만든다(화면 값 창과 높이 측정용 복사본에 같이 씀)
+    const j = i == null ? last : i, bar = barOf(j); tgt.replaceChildren();
+    const chg = (bar.c / bar.o - 1) * 100, r0 = h("div", "r0"); r0.append(el("span", "tm", ft(bar.t)));
+    if (bar.forming) r0.append(el("span", "fm", "진행 중"));
+    r0.append(el("span", "chg " + (chg >= 0 ? "pos" : "neg"), (chg >= 0 ? "+" : "") + chg.toFixed(2) + "%")); tgt.append(r0);
+    const og = h("div", "ohlc"); for (const [n, v] of [["시가", bar.o], ["고가", bar.h], ["저가", bar.l], ["종가", bar.c]]) og.append(h("div", null, el("small", null, n), el("span", null, px(c.sym, v)))); tgt.append(og);
+    const q = bar.forming ? NaN : sp.vr[j];
+    tgt.append(el("div", "r2", "거래량 " + nf(bar.v, bar.v >= 100 ? 0 : 2) + (Number.isFinite(q) ? " (직전 20봉 평균의 " + q.toFixed(1) + "배)" : bar.forming ? " (진행 중 봉)" : "")));
+    let r3 = null;
+    if (k === "A" && evAt[j]) { const EV = evAt[j], e0 = EV[0]; r3 = EV.length === 1 ? "돌파: " + e0.name + " (" + (e0.tfH === 1 ? "1시간" : "4시간") + "봉, 거래량 " + e0.vr.toFixed(1) + "배)" : "돌파 " + EV.length + "건: " + e0.name + " 외 " + (EV.length - 1) + "건 (거래량 최대 " + Math.max(...EV.map((e) => e.vr)).toFixed(1) + "배)"; }   // 한 봉에 여러 레벨이 같이 돌파되면 첫 이름 + 개수로 줄여 값 창 높이가 늘지 않게(전체 목록은 아래 기록표)
+    else if (k === "B") { const I = r.B.I, f = (v) => Number.isFinite(v) ? px(c.sym, v) : "–", s = j <= nc ? r.B.sig[j] : 0; r3 = "전환선 " + f(I.ten[j]) + " / 기준선 " + f(I.kij[j]) + " / 구름 " + f(I.bot[j]) + " ~ " + f(I.top[j]) + (s ? " / " + (s > 0 ? "롱" : "숏") + " 신호 봉" : ""); }
+    else if (k === "C") { const C = r.C, ids = j <= nc ? S.C_TRIGS.filter((t) => C.T[t.id][j]).map((t) => t.short) : []; r3 = "4시간 필터 " + (C.fil[j] ? "통과" : "미통과") + (ids.length ? " / 돌파 신호 " + ids.join(", ") : "") + (j <= nc && C.trades.some((t) => t.sig === j) ? " / 가상 진입 신호 봉" : ""); }
+    if (r3) tgt.append(el("div", "r3", r3));
+  };
+  const readout = (i) => buildRo(i, ro);
+  const xh = mk("g", { "data-role": "xh", "pointer-events": "none" }); xh.style.display = "none";
+  const xl = mk("line", { y1: mt, y2: y0v, stroke: col.ink2, "stroke-width": 1 }, null, xh), xd = mk("circle", { r: 4, fill: col.ink, stroke: col.sf, "stroke-width": 2 }, null, xh);
+  const hit = mk("rect", { x: plotL, y: 0, width: plotR - plotL, height: Ht - xb, fill: "transparent", "data-role": "hit" });
+  let cur = null;
+  const setX = (i) => { cur = i; if (i == null) { xh.style.display = "none"; st.xhT = null; readout(null); return; } const bar = barOf(i), x = X(i); xl.setAttribute("x1", x); xl.setAttribute("x2", x); xd.setAttribute("cx", x); xd.setAttribute("cy", Y(bar.c)); xh.style.display = ""; st.xhT = bar.t; readout(i); };
+  const idxFrom = (cx) => { const rc = svg.getBoundingClientRect(), x = (cx - rc.left) * (W / (rc.width || W)); return Math.max(a, Math.min(last, a + Math.round((x - plotL) / step - 0.5))); };
+  hit.addEventListener("pointermove", (e) => setX(idxFrom(e.clientX)));
+  hit.addEventListener("pointerdown", (e) => setX(idxFrom(e.clientX)));
+  hit.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") setX(null); });
+  host.onkeydown = (e) => { const kk = e.key; if (kk === "ArrowLeft" || kk === "ArrowRight" || kk === "Home" || kk === "End") { e.preventDefault(); const i0 = cur == null ? last : cur; setX(kk === "Home" ? a : kk === "End" ? last : Math.max(a, Math.min(last, i0 + (kk === "ArrowLeft" ? -1 : 1)))); } else if (kk === "Escape") setX(null); };
+  host.replaceChildren(svg); chartApi = { setX };
+  // 값 창 높이를 가장 긴 봉에 맞춰 미리 잡아 둔다(십자선을 움직여도 아래 차트가 위아래로 흔들리지 않게)
+  ro.style.minHeight = "0px"; const ms = ro.cloneNode(false); ms.removeAttribute("id"); ms.setAttribute("aria-hidden", "true"); ms.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;left:0;top:0;min-height:0;width:" + ro.getBoundingClientRect().width + "px";
+  ro.parentNode.append(ms); let mh = 0; for (let i = a; i <= last; i++) { buildRo(i, ms); mh = Math.max(mh, ms.offsetHeight); } ms.remove(); ro.style.minHeight = Math.ceil(mh) + "px";
+  const keep = st.xhT != null ? (() => { for (let i = a; i <= last; i++) if ((hasF && i === last ? F.t : b.t[i]) === st.xhT) return i; return null; })() : null;
+  setX(keep);
+  // 범례
+  const li = (cl, txt, dash, kind) => { const s = el("span"); let i; if (kind === "sw") { i = el("i", "sw"); i.style.background = cl; } else { i = el("i"); i.style.borderColor = cl; if (dash) i.style.borderTopStyle = "dashed"; } s.append(i, txt); lg.append(s); };
+  const gl = (name, cl, txt) => { const s = el("span"), g = ico(name); g.style.color = cl; s.append(g, txt); lg.append(s); };
+  li(col.up, "상승봉", false, "sw"); li(col.dn, "하락봉", false, "sw");
+  if (k === "A") { li(col.acc, "위쪽 돌파 레벨(굵은 선 = 가장 가까운 레벨)", true); gl("long", col.up, "과거 돌파 신호"); }
+  if (k === "B") { li(col.acc, "전환선"); li(col.ink2, "기준선"); lg.append(el("span", null, "음영 = 일목 구름")); gl("long", col.up, "롱 신호"); gl("short", col.dn, "숏 신호"); }
+  if (k === "C") { lg.append(el("span", null, "음영 = 4시간 일목 필터 통과")); gl("wait", col.acc, "돌파 신호 1종 이상"); gl("long", col.up, "가상 진입 신호"); }
+  if (plan) { li(col.ink, "진입"); li(col.dn, "손절"); if (tps.length) li(col.up, "익절", true); lg.append(el("span", null, "붉은 음영 = 손실 구간(진입~손절)")); }
+  if (pinT0.length) lg.append(el("span", null, "↑ = 차트 위쪽 밖에 있는 값"));
+  lg.append(el("span", null, "아래 막대 = 거래량" + (hasF ? " / 흐린 봉 = 진행 중" : "")));
+}
+
+/* ───── 조립: 상태 칩 · 화면 전환 · 불러오기 · 이벤트 ───── */
+function setChip() {
+  const d = st.data, ch = $("status");
+  if (!d) { ch.className = "chip"; ch.textContent = st.loading ? "불러오는 중" : "데이터 없음"; return; }
+  if (st.fail && d.live) { ch.className = "chip warn"; ch.textContent = "갱신 실패 · " + ft(d.at).slice(6) + " 데이터"; }   // 선물 시세 갱신이 실패하면 현물로 바꾸지 않고, 오래된 데이터임을 계속 표시
+  else { ch.className = "chip " + (d.live ? "live" : "warn"); ch.textContent = (d.live ? "실시간(" + d.src + ") " : "데모 데이터 ") + ft(d.at).slice(6); }
+}
+function render() {
+  const d = st.data; setChip();
+  if (!d) { st.an = null; st.anFor = null; st.board = null; }
+  else { if (st.anFor !== d) { st.an = SYMS.map((s) => analyze(d.coins[s])); st.anFor = d; } st.board = buildBoard(st.an); st.sel = pickSel(st.board); }
+  renderVerdict(); renderBoard();
+  if (st.screen === "board") renderDetail();
+}
+function showScreen(name) {
+  st.screen = name; store.set("screen", name);
+  $("screen-board").hidden = name !== "board"; $("screen-info").hidden = name !== "info";
+  document.querySelectorAll(".screens button").forEach((b) => { const on = b.dataset.screen === name; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; });
+  if (name === "info") renderInfo(); else renderDetail();
+}
+async function load() {
+  if (st.loading) return; st.loading = true; $("refresh").disabled = true; setChip();
+  try { st.data = st.demo ? demoAll() : await liveAll(); st.fail = null; $("error").hidden = true; }
+  catch (e) {
+    st.fail = (e && e.message) || "네트워크 오류";
+    if (!st.data) { $("error-msg").textContent = "바이낸스 선물 시세를 불러오지 못했습니다 (" + st.fail + "). 인터넷, VPN, 지역 제한을 확인해 주세요. 현물 시세로는 대체하지 않습니다."; $("demo").hidden = false; $("error").hidden = false; }
+    else { $("error-msg").textContent = "시세 갱신에 실패했습니다 (" + st.fail + "). " + ft(st.data.at).slice(6) + " 데이터를 표시 중이라 신호가 최신이 아닐 수 있습니다. 현물 시세로는 대체하지 않습니다."; $("demo").hidden = true; $("error").hidden = false; toast("갱신 실패: 이전 데이터를 표시 중"); }
+  }
+  finally { st.loading = false; $("refresh").disabled = false; }
+  render();
+}
+function schedule() { clearInterval(st.timer); if (cfg.auto) st.timer = setInterval(() => { if (!document.hidden && !st.demo) load(); }, 60000); }
+$("balance").value = cfg.balance; $("risk").value = cfg.risk; $("auto").checked = cfg.auto;
+$("balance").onchange = (e) => { cfg.balance = Math.max(0, +e.target.value || 0); store.set("balance", cfg.balance, 1); render(); };
+$("risk").onchange = (e) => { cfg.risk = Math.min(3, Math.max(0.1, +e.target.value || 1)); e.target.value = cfg.risk; store.set("risk", cfg.risk, 1); render(); };
+$("auto").onchange = (e) => { cfg.auto = e.target.checked; store.set("auto", cfg.auto, 1); schedule(); };
+$("refresh").onclick = load; $("demo").onclick = () => { st.demo = true; load(); };
+$("gear").onclick = () => { const s = $("settings"), open = s.hidden; s.hidden = !open; $("gear").setAttribute("aria-expanded", String(open)); if (open) $("balance").focus({ preventScroll: true }); };
+document.querySelectorAll(".screens button").forEach((b) => {
+  b.onclick = () => { if (b.dataset.screen === "info" && st.sel) { st.itab = st.sel.k; store.set("itab", st.itab); } showScreen(b.dataset.screen); window.scrollTo(0, 0); };
+  b.onkeydown = (e) => { if (e.key === "ArrowLeft" || e.key === "ArrowRight") { const o = document.querySelector('.screens button[data-screen="' + (b.dataset.screen === "board" ? "info" : "board") + '"]'); e.preventDefault(); o.click(); o.focus(); } };
+});
+if (!["board", "info"].includes(st.screen)) st.screen = "board"; if (!STR.includes(st.itab)) st.itab = "A"; if (!RANGES[st.range]) st.range = "normal";
+let rzT = null; window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => { if (st.data) drawChart(); }, 200); });
+document.addEventListener("pointerdown", (e) => { if (chartApi && !(e.target.closest && e.target.closest("#chart"))) chartApi.setX(null); });   // 차트 바깥을 누르면 십자선을 닫음(터치에서는 손을 떼도 값이 남아 있음)
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !st.demo && st.data && Date.now() - st.data.at > 60000) load(); });   // 다른 앱에 있다가 돌아오면 바로 새로 받음
+window.__board = { st, render, load, select, showScreen, drawChart, S, cfg };
+showScreen(st.screen); render(); load(); schedule();
+})();
+</script>
+</body>
+</html>
